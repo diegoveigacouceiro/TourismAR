@@ -1,4 +1,4 @@
-package es.itg.tourismar
+package es.itg.tourismar.ui.screens
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +23,7 @@ import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Plane
 import com.google.ar.core.TrackingFailureReason
+import es.itg.tourismar.R
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.arcore.createAnchorOrNull
 import io.github.sceneview.ar.arcore.getUpdatedPlanes

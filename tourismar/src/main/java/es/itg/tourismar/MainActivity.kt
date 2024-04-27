@@ -19,19 +19,20 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.AndroidEntryPoint
+import es.itg.tourismar.ui.screens.ARSceneScreen
+import es.itg.tourismar.ui.screens.HomeScreen
+import es.itg.tourismar.ui.screens.SettingsScreen
+import es.itg.tourismar.ui.screens.authentication.login.SignInScreen
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -45,6 +46,7 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object ARScene : Screen("arScene")
     // Agrega más pantallas según sea necesario
+    object Login : Screen("login")
 }
 
 @Composable
@@ -55,10 +57,11 @@ fun MyApp() {
     val screens = listOf(
         Screen.Home,
         Screen.Settings,
-        Screen.ARScene
+        Screen.ARScene,
+        Screen.Login
     )
 
-    NavHost(navController = navController, startDestination = Screen.ARScene.route) {
+    NavHost(navController = navController, startDestination = Screen.Login.route) {
         screens.forEach { screen ->
             composable(screen.route) {
                 DestinationScreen(screen = screen, navController = navController)
@@ -75,17 +78,10 @@ fun DestinationScreen(screen: Screen, navController: NavController) {
         is Screen.Home -> "Home"
         is Screen.Settings -> "Settings"
         is Screen.ARScene -> "AR Scene"
+        is Screen.Login -> "Login "
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = title) },
-                colors = TopAppBarDefaults.topAppBarColors(),
-
-            )
-        },
-        // Agrega paddingValues aunque no se use en este caso
     ) {
         it
         Box(modifier = Modifier.fillMaxSize()) {
@@ -93,6 +89,8 @@ fun DestinationScreen(screen: Screen, navController: NavController) {
                 is Screen.Home -> HomeScreen()
                 is Screen.Settings -> SettingsScreen()
                 is Screen.ARScene -> ARSceneScreen()
+                is Screen.Login -> SignInScreen()
+
             }
 
             // Bottom navigation
