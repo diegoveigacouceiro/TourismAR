@@ -1,4 +1,4 @@
-package com.agz.tourismar
+package es.itg.tourismar
 
 import org.junit.Test
 

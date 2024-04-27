@@ -1,4 +1,4 @@
-package com.agz.tourismar
+package es.itg.tourismar
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth

@@ -5,12 +5,13 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.4'
+        classpath 'com.android.tools.build:gradle:8.3.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22"
         // Maven Central Publish
         classpath "com.vanniktech:gradle-maven-publish-plugin:0.25.3"
         // Dokka
         classpath "org.jetbrains.dokka:dokka-gradle-plugin:1.9.10"
+        classpath 'com.google.gms:google-services:4.4.1'
     }
 }
 
@@ -63,3 +64,5 @@ allprojects {
         }
     }
 }
+
+apply plugin: 'com.google.gms.google-services'

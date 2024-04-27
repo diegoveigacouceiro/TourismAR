@@ -1,4 +1,4 @@
-package com.agz.tourismar.ui.theme
+package es.itg.tourismar.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

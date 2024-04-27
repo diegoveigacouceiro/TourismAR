@@ -32,6 +32,7 @@
             <option value="$PROJECT_DIR$/samples/model-viewer" />
             <option value="$PROJECT_DIR$/samples/model-viewer-compose" />
             <option value="$PROJECT_DIR$/sceneview" />
+            <option value="$PROJECT_DIR$/tourismar" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

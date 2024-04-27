@@ -1,4 +1,4 @@
-package com.agz.tourismar.ui.theme
+package es.itg.tourismar.ui.theme
 
 import android.app.Activity
 import android.os.Build

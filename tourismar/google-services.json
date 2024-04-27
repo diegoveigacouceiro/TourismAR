@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "890258016957",
+    "project_id": "tourismar-c7e51",
+    "storage_bucket": "tourismar-c7e51.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:890258016957:android:9cc3aff9acba8024a985d4",
+        "android_client_info": {
+          "package_name": "es.itg.tourismar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJWas3-FylchnU1Qk4_tdqyOwpE7EHWOQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
