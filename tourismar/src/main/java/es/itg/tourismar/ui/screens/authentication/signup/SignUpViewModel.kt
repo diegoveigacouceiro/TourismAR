@@ -23,10 +23,10 @@ class SignUpViewModel @Inject constructor(
 
 
     fun registerUser(email:String, pasword:String) = viewModelScope.launch {
-        repository.loginUser(email,pasword).collect{result ->
+        repository.registerUser(email,pasword).collect{result ->
             when(result){
                 is Resource.Success ->{
-                    _signUpState.send(SignUpState(isSuccess = "Sing In Success"))
+                    _signUpState.send(SignUpState(isSuccess = "Sing Up Success"))
                 }
 
                 is Resource.Loading -> {

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -26,10 +27,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
+import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.ARSceneScreen
 import es.itg.tourismar.ui.screens.HomeScreen
 import es.itg.tourismar.ui.screens.SettingsScreen
 import es.itg.tourismar.ui.screens.authentication.login.SignInScreen
+import es.itg.tourismar.ui.screens.authentication.signup.SignUpScreen
+import es.itg.tourismar.ui.screens.authentication.signup.SignUpViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -41,13 +45,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-sealed class Screen(val route: String) {
-    object Home : Screen("home")
-    object Settings : Screen("settings")
-    object ARScene : Screen("arScene")
-    // Agrega más pantallas según sea necesario
-    object Login : Screen("login")
-}
 
 @Composable
 @Preview
@@ -55,13 +52,14 @@ fun MyApp() {
     val navController = rememberNavController()
 
     val screens = listOf(
-        Screen.Home,
-        Screen.Settings,
-        Screen.ARScene,
-        Screen.Login
+        Screens.Home,
+        Screens.Settings,
+        Screens.ARScene,
+        Screens.SignIn,
+        Screens.SignUp
     )
 
-    NavHost(navController = navController, startDestination = Screen.Login.route) {
+    NavHost(navController = navController, startDestination = Screens.SignIn.route) {
         screens.forEach { screen ->
             composable(screen.route) {
                 DestinationScreen(screen = screen, navController = navController)
@@ -73,45 +71,40 @@ fun MyApp() {
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun DestinationScreen(screen: Screen, navController: NavController) {
-    val title = when (screen) {
-        is Screen.Home -> "Home"
-        is Screen.Settings -> "Settings"
-        is Screen.ARScene -> "AR Scene"
-        is Screen.Login -> "Login "
-    }
+fun DestinationScreen(screen: Screens, navController: NavController) {
 
     Scaffold(
     ) {
         it
         Box(modifier = Modifier.fillMaxSize()) {
             when (screen) {
-                is Screen.Home -> HomeScreen()
-                is Screen.Settings -> SettingsScreen()
-                is Screen.ARScene -> ARSceneScreen()
-                is Screen.Login -> SignInScreen()
-
+                is Screens.Home -> HomeScreen()
+                is Screens.Settings -> SettingsScreen()
+                is Screens.ARScene -> ARSceneScreen()
+                is Screens.SignIn -> SignInScreen(navController)
+                is Screens.SignUp -> SignUpScreen(navController)
             }
 
             // Bottom navigation
             NavigationBar(
                 modifier = Modifier.align(Alignment.BottomCenter),
+                contentColor = MaterialTheme.colorScheme.primary
             ) {
                 NavigationBarItem(
-                    selected = navController.currentDestination?.route == Screen.Home.route,
-                    onClick = { navController.navigate(Screen.Home.route) },
+                    selected = navController.currentDestination?.route == Screens.Home.route,
+                    onClick = { navController.navigate(Screens.Home.route) },
                     icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
                     label = { Text("Home") }
                 )
                 NavigationBarItem(
-                    selected = navController.currentDestination?.route == Screen.Settings.route,
-                    onClick = { navController.navigate(Screen.Settings.route) },
+                    selected = navController.currentDestination?.route == Screens.Settings.route,
+                    onClick = { navController.navigate(Screens.Settings.route) },
                     icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
                     label = { Text("Settings") }
                 )
                 NavigationBarItem(
-                    selected = navController.currentDestination?.route == Screen.ARScene.route,
-                    onClick = { navController.navigate(Screen.ARScene.route) },
+                    selected = navController.currentDestination?.route == Screens.ARScene.route,
+                    onClick = { navController.navigate(Screens.ARScene.route) },
                     icon = { Icon(Icons.Filled.PlayArrow, contentDescription = "AR Scene") },
                     label = { Text("AR Scene") }
                 )
