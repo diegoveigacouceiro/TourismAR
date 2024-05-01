@@ -1,5 +1,6 @@
 package es.itg.tourismar.ui.screens.authentication.login
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -38,7 +39,15 @@ fun SignInScreen(
     val context = LocalContext.current
     val state = viewModel.signInState.collectAsState(initial = null)
 
-    // Use MaterialTheme colors for the surface and text
+    LaunchedEffect(key1 = state.value?.isSuccess) {
+        scope.launch {
+            if (state.value?.isSuccess?.isNotEmpty() == true) {
+                navController.popBackStack()
+                navController.navigate(Screens.Home.route)
+            }
+        }
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.fillMaxSize()
@@ -95,7 +104,6 @@ fun SignInScreen(
                 onClick = {
                     scope.launch {
                         viewModel.loginUser(email, password)
-
                     }
                 },
                 modifier = Modifier
@@ -117,10 +125,21 @@ fun SignInScreen(
                 text = "¿No tienes cuenta? Regístrate aquí",
                 color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
-                    .clickable { navController.navigate(Screens.SignUp.route) },
+                    .clickable {
+                        navController.popBackStack()
+                        navController.navigate(Screens.SignUp.route)},
                 fontSize = MaterialTheme.typography.bodySmall.fontSize,
                 textDecoration = TextDecoration.Underline
             )
+        }
+
+        LaunchedEffect(key1 = state.value?.isError) {
+            scope.launch {
+                if (state.value?.isError?.isNotEmpty() == true) {
+                    val error = state.value?.isError
+                    Toast.makeText(context, "${error}", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 }

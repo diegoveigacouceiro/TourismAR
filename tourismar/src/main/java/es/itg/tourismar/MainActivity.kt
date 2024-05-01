@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.tooling.preview.Preview
@@ -73,9 +74,7 @@ fun MyApp() {
 @Composable
 fun DestinationScreen(screen: Screens, navController: NavController) {
 
-    Scaffold(
-    ) {
-        it
+    Surface{
         Box(modifier = Modifier.fillMaxSize()) {
             when (screen) {
                 is Screens.Home -> HomeScreen()

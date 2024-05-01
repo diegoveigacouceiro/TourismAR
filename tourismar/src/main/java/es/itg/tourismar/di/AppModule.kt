@@ -1,6 +1,7 @@
 package es.itg.tourismar.di
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,8 +20,12 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesRepositoryImpl(firebaseAuth: FirebaseAuth):UserAuthRepository{
-        return UserAuthRepositoryImpl(firebaseAuth)
+    fun providesFirebaseFirestore() = FirebaseFirestore.getInstance()
+
+    @Provides
+    @Singleton
+    fun providesRepositoryImpl(firebaseAuth: FirebaseAuth, firebaseFirestore: FirebaseFirestore):UserAuthRepository{
+        return UserAuthRepositoryImpl(firebaseAuth, firebaseFirestore )
     }
 
 }
