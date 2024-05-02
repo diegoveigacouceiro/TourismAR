@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +68,16 @@ fun ARSceneScreen() {
     }
     var frame by remember { mutableStateOf<Frame?>(null) }
 
+    var shouldDispose by remember { mutableStateOf(false) }
+
+    LaunchedEffect(shouldDispose) {
+        if (shouldDispose) {
+            // Eliminar todos los nodos hijos antes de que el ARScene se elimine
+            // Limpiar la lista de nodos hijos
+//            childNodes.clear()
+        }
+    }
+
     ARScene(
         modifier = Modifier.fillMaxSize(),
         childNodes = childNodes,
@@ -126,8 +138,11 @@ fun ARSceneScreen() {
                             )
                         }
                 }
-            })
+            }
+        )
     )
+
+
 
     Text(
         modifier = Modifier
@@ -139,6 +154,8 @@ fun ARSceneScreen() {
         text = trackingFailureReason?.getDescription(LocalContext.current) ?: stringResource(R.string.app_name)
     )
 }
+
+
 
 fun createAnchorNode(
     engine: Engine,

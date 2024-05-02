@@ -583,7 +583,7 @@ open class ARSceneView @JvmOverloads constructor(
 
             lightEstimator?.destroy()
             planeRenderer.destroy()
-            destroyArCore()
+//            destroyArCore()
         }
 
         super.destroy()
