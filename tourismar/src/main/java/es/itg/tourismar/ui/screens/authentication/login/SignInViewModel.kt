@@ -3,6 +3,7 @@ package es.itg.tourismar.ui.screens.authentication.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
 import es.itg.tourismar.data.repository.authRepository.UserAuthRepository
 import es.itg.tourismar.util.Resource
 import kotlinx.coroutines.channels.Channel
@@ -21,6 +22,7 @@ class SignInViewModel @Inject constructor(
 
     init {
         isUserLogged()
+
     }
 
     private fun isUserLogged()  = viewModelScope.launch {

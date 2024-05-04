@@ -68,15 +68,7 @@ fun ARSceneScreen() {
     }
     var frame by remember { mutableStateOf<Frame?>(null) }
 
-    var shouldDispose by remember { mutableStateOf(false) }
 
-    LaunchedEffect(shouldDispose) {
-        if (shouldDispose) {
-            // Eliminar todos los nodos hijos antes de que el ARScene se elimine
-            // Limpiar la lista de nodos hijos
-//            childNodes.clear()
-        }
-    }
 
     ARScene(
         modifier = Modifier.fillMaxSize(),
