@@ -36,7 +36,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.navigation.Screens
@@ -258,8 +260,12 @@ fun DetailedAnchorRouteCard(
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                GoogleMap()
-
+                GoogleMap(
+                    modifier=Modifier.fillMaxSize(),
+                    properties = MapProperties(true,true,true,
+                        true,null,null
+                        )
+                )
 
                 // Botón de retroceso
                 IconButton(

@@ -1,5 +1,8 @@
 package es.itg.tourismar.ui.screens
 
+import android.content.Context
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +27,7 @@ import com.google.ar.core.Anchor
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Plane
+import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
 import es.itg.tourismar.R
 import io.github.sceneview.ar.ARScene
@@ -32,6 +36,7 @@ import io.github.sceneview.ar.arcore.getUpdatedPlanes
 import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
 import io.github.sceneview.ar.node.AnchorNode
+import io.github.sceneview.ar.node.CloudAnchorNode
 import io.github.sceneview.ar.rememberARCameraNode
 import io.github.sceneview.loaders.MaterialLoader
 import io.github.sceneview.loaders.ModelLoader
@@ -59,6 +64,9 @@ fun ARSceneScreen() {
     val childNodes = rememberNodes()
     val view = rememberView(engine)
     val collisionSystem = rememberCollisionSystem(view)
+    var session2 by  remember {
+        mutableStateOf<Session?>(null)
+    }
 
     var planeRenderer by remember { mutableStateOf(true) }
 
@@ -78,14 +86,32 @@ fun ARSceneScreen() {
         modelLoader = modelLoader,
         collisionSystem = collisionSystem,
         sessionConfiguration = { session, config ->
+            // Activation Depth occlusion
             config.depthMode =
                 when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
                     true -> Config.DepthMode.AUTOMATIC
-                    else -> Config.DepthMode.DISABLED
+                    false -> Config.DepthMode.DISABLED
                 }
-            config.instantPlacementMode = Config.InstantPlacementMode.LOCAL_Y_UP
-            config.lightEstimationMode =
-                Config.LightEstimationMode.ENVIRONMENTAL_HDR
+            cameraNode.session?.isDepthModeSupported(Config.DepthMode.DISABLED)
+
+            // Activación Geospatial
+//            if (session.isGeospatialModeSupported(Config.GeospatialMode.ENABLED))
+//                config.geospatialMode = Config.GeospatialMode.ENABLED
+//            config.streetscapeGeometryMode = Config.StreetscapeGeometryMode.ENABLED
+
+            // Activación CloudAnchors
+            config.cloudAnchorMode = Config.CloudAnchorMode.ENABLED
+
+            // Configuración luz
+//            config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+//
+//            config.focusMode = Config.FocusMode.AUTO
+//
+//            config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
+//            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
+//            //config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+//            cameraNode.focalLength = 50.0
+
         },
         cameraNode = cameraNode,
         planeRenderer = planeRenderer,
@@ -94,6 +120,7 @@ fun ARSceneScreen() {
         },
         onSessionUpdated = { session, updatedFrame ->
             frame = updatedFrame
+            session2 = session
 
             if (childNodes.isEmpty()) {
                 updatedFrame.getUpdatedPlanes()
@@ -121,13 +148,24 @@ fun ARSceneScreen() {
                     }?.createAnchorOrNull()
                         ?.let { anchor ->
                             planeRenderer = false
-                            childNodes += createAnchorNode(
-                                engine = engine,
-                                modelLoader = modelLoader,
-                                materialLoader = materialLoader,
-                                modelInstances = modelInstances,
-                                anchor = anchor
-                            )
+                            CloudAnchorNode(engine, anchor).apply {
+                                try {
+                                    session2?.let {
+                                        host(it, 365) { cloudAnchorId, state ->
+                                            when (state) {
+                                                Anchor.CloudAnchorState.SUCCESS -> {
+                                                    Log.d("anchor","cloud Ancho id: $cloudAnchorId")
+
+                                                }
+
+                                                else -> {}
+                                            }
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.d("anchor","cloud Anchor")
+                                }
+                            }
                         }
                 }
             }
