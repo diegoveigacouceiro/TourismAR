@@ -12,6 +12,7 @@ interface AnchorRepository {
 
     fun createAnchorRoute(anchorRoute: AnchorRoute) : Flow<Resource<Task<Void>>>
     fun readAnchorRoutes(): Flow<Resource<List<AnchorRoute>>>
+    fun observeAnchorRoutes(): Flow<Resource<List<AnchorRoute>>>
     fun readAnchorRouteById(id: String): Flow<Resource<AnchorRoute?>>
     fun updateAnchorRoute(anchorRoute: AnchorRoute): Flow<Resource<Unit>>
     fun deleteAnchorRouteById(id: String): Flow<Resource<Unit>>

@@ -7,7 +7,9 @@ import com.google.firebase.firestore.toObject
 import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.util.Resource
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.tasks.await
@@ -39,10 +41,44 @@ class AnchorRepositoryImpl @Inject constructor(
                 document.toObject(AnchorRoute::class.java)
             }
             emit(Resource.Success(anchorRoutes))
+
         }.catch { e ->
             emit(Resource.Error(e.message ?: "An error occurred"))
+
         }
     }
+
+    // Por ejemplo, en tu repositorio:
+    override fun observeAnchorRoutes(): Flow<Resource<List<AnchorRoute>>> {
+        return callbackFlow<Resource<List<AnchorRoute>>> {
+            val listener = firestore.collection("anchorRoutes")
+                .addSnapshotListener { snapshot, exception ->
+                    if (exception != null) {
+                        // Manejar errores
+                        trySend(Resource.Error(exception.message ?: "An error occurred"))
+                        return@addSnapshotListener
+                    }
+
+                    snapshot?.let { querySnapshot ->
+                        val anchorRoutes = mutableListOf<AnchorRoute>()
+                        for (document in querySnapshot.documents) {
+                            val anchorRoute = document.toObject(AnchorRoute::class.java)
+                            anchorRoute?.let { anchorRoutes.add(it) }
+                        }
+                        trySend(Resource.Success(anchorRoutes))
+                    }
+                }
+
+            awaitClose { listener.remove() }
+        }
+    }
+
+
+
+
+
+
+
 
 
     override fun readAnchorRouteById(id: String): Flow<Resource<AnchorRoute?>> {

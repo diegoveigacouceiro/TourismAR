@@ -26,7 +26,10 @@ data class Anchor(
     val location: CustomLatLng = CustomLatLng(0.0, 0.0),
     val pose: Pose,
     val apiLink: String = ""
-)
+){
+    constructor() : this("", "", "", 0, "", CustomLatLng(0.0, 0.0), Pose(), "")
+
+}
 
 
 data class CustomLatLng(

@@ -6,4 +6,7 @@ data class AnchorRoute(
     val anchors: List<Anchor>,
     val imageUrl: String,
     val description: String
-)
+){
+        constructor() : this("","", emptyList(), "", "")
+
+}

@@ -1,8 +1,10 @@
 package es.itg.tourismar.ui.screens.home
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import es.itg.tourismar.data.model.anchor.Anchor
@@ -12,6 +14,8 @@ import es.itg.tourismar.data.model.anchor.Pose
 import es.itg.tourismar.data.model.anchor.SerializableFloat3
 import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
 import es.itg.tourismar.util.Resource
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,21 +26,42 @@ class HomeViewModel @Inject constructor(
     private val repository: AnchorRepository
 ) : ViewModel() {
 
-    private val _anchorRoutes = MutableLiveData<Resource<List<AnchorRoute>>>()
-    val anchorRoutes: LiveData<Resource<List<AnchorRoute>>> = _anchorRoutes
+
+
+    private val _anchorRoutes = MutableLiveData<List<AnchorRoute>?>()
+    val anchorRoutes: LiveData<List<AnchorRoute>?> get() = _anchorRoutes
+
+    init {
+        viewModelScope.launch {
+            repository.observeAnchorRoutes().collect { resource ->
+                when (resource) {
+                    is Resource.Success -> _anchorRoutes.value = resource.data
+                    is Resource.Error -> Log.e("HomeViewModel", "Error observing anchor routes: ${resource.message}")
+                    is Resource.Loading -> Log.d("HomeViewModel", "Loading observing anchor routes...")
+                }
+            }
+        }
+    }
 
 
     init {
-        testAnchorRouteRepository()
-        fetchAllAnchorRoutes()
+//        testAnchorRouteRepository()
+//        fetchAnchorRoutes()
     }
 
-    private fun fetchAllAnchorRoutes() = viewModelScope.launch {
-            _anchorRoutes.value = Resource.Loading()
-            repository.readAnchorRoutes().collect { result ->
-                _anchorRoutes.value = result
-            }
-        }
+
+//    fun fetchAnchorRoutes() {
+//        viewModelScope.launch {
+//            _anchorRoutes.value = Resource.Loading()
+//            try {
+//                val result = repository.readAnchorRoutes()
+//                _anchorRoutes.value = Resource.Success(result)
+//            } catch (e: Exception) {
+//                _anchorRoutes.value = Resource.Error(e.message ?: "An error occurred")
+//            }
+//        }
+
+
 
 
     private fun testAnchorRouteRepository() {
@@ -62,7 +87,7 @@ class HomeViewModel @Inject constructor(
         val anchorRoute = AnchorRoute(
             anchorRouteName = "Route 2",
             anchors = listOf(anchor1, anchor2),
-            imageUrl = "route2.jpg",
+            imageUrl = "images/torre_de_hercules.jpeg",
             description = "Route 2 Description"
         )
 
@@ -75,35 +100,36 @@ class HomeViewModel @Inject constructor(
                     is Resource.Error -> println("Creating anchor route: Error - ${result.message}")
                 }
             }
-
-            // Leer la ruta de ancla recién creada por ID
-            repository.readAnchorRouteById("1").collect { result ->
-                when (result) {
-                    is Resource.Loading -> println("Reading anchor route: Loading...")
-                    is Resource.Success -> println("Reading anchor route: Success! ${result.data}")
-                    is Resource.Error -> println("Reading anchor route: Error - ${result.message}")
-                }
-            }
-
-
-            // Actualizar la ruta de ancla recién creada
-            val updatedAnchorRoute = anchorRoute.copy(description = "Updated Route Description")
-            repository.updateAnchorRoute(updatedAnchorRoute).collect { result ->
-                when (result) {
-                    is Resource.Loading -> println("Updating anchor route: Loading...")
-                    is Resource.Success -> println("Updating anchor route: Success!")
-                    is Resource.Error -> println("Updating anchor route: Error - ${result.message}")
-                }
-            }
-
-            // Eliminar la ruta de ancla recién creada
-            repository.deleteAnchorRouteById("1").collect { result ->
-                when (result) {
-                    is Resource.Loading -> println("Deleting anchor route: Loading...")
-                    is Resource.Success -> println("Deleting anchor route: Success!")
-                    is Resource.Error -> println("Deleting anchor route: Error - ${result.message}")
-                }
-            }
+//
+//            // Leer la ruta de ancla recién creada por ID
+//            repository.readAnchorRouteById("1").collect { result ->
+//                when (result) {
+//                    is Resource.Loading -> println("Reading anchor route: Loading...")
+//                    is Resource.Success -> println("Reading anchor route: Success! ${result.data}")
+//                    is Resource.Error -> println("Reading anchor route: Error - ${result.message}")
+//                }
+//            }
+//
+//
+//            // Actualizar la ruta de ancla recién creada
+//            val updatedAnchorRoute = anchorRoute.copy(description = "Updated Route Description")
+//            repository.updateAnchorRoute(updatedAnchorRoute).collect { result ->
+//                when (result) {
+//                    is Resource.Loading -> println("Updating anchor route: Loading...")
+//                    is Resource.Success -> println("Updating anchor route: Success!")
+//                    is Resource.Error -> println("Updating anchor route: Error - ${result.message}")
+//                }
+//            }
+//
+//            // Eliminar la ruta de ancla recién creada
+//            repository.deleteAnchorRouteById("1").collect { result ->
+//                when (result) {
+//                    is Resource.Loading -> println("Deleting anchor route: Loading...")
+//                    is Resource.Success -> println("Deleting anchor route: Success!")
+//                    is Resource.Error -> println("Deleting anchor route: Error - ${result.message}")
+//                }
+//            }
         }
     }
+
 }

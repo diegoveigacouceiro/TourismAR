@@ -136,13 +136,6 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
         gesturesEnabled = showModalDrawer,
         content = {
             Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = {
-                            Text(text = "Todo App")
-                        }
-                    )
-                },
                 bottomBar = {
                     if (currentScreen !in listOf(Screens.SignIn, Screens.ARScene, Screens.SignUp)) {
                         NavigationBar(
@@ -173,7 +166,7 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
             ) {
                 it
                 when (currentScreen) {
-                    is Screens.Home -> HomeScreen(navController)
+                    is Screens.Home -> HomeScreen(navController,Modifier)
                     is Screens.Settings -> SettingsScreen()
                     is Screens.ARScene -> ARSceneScreen()
                     is Screens.SignIn -> SignInScreen(navController)
