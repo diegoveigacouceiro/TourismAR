@@ -1,6 +1,8 @@
 package es.itg.tourismar.data.model.anchor
 
+import android.os.Parcelable
 import dev.romainguy.kotlin.math.Float3
+import kotlinx.parcelize.Parcelize
 import java.io.Serializable
 
 /**
@@ -17,6 +19,7 @@ import java.io.Serializable
  * @param apiLink Link o endpoint para mostrar contenido alojado en un ApiRest
  *
  */
+@Parcelize
 data class Anchor(
     val id: String = "",
     val model: String = "",
@@ -24,28 +27,30 @@ data class Anchor(
     val order: Int = 0,
     val serializedTime: String = "",
     val location: CustomLatLng = CustomLatLng(0.0, 0.0),
-    val pose: Pose,
+    val pose: Pose = Pose(),
     val apiLink: String = ""
-){
+) : Parcelable {
     constructor() : this("", "", "", 0, "", CustomLatLng(0.0, 0.0), Pose(), "")
-
 }
 
 
+
+@Parcelize
 data class CustomLatLng(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0
-): Serializable
+) : Parcelable
 
-
+@Parcelize
 data class SerializableFloat3(
     val x: Float = 0f,
     val y: Float = 0f,
     val z: Float = 0f
-): Serializable
+) : Parcelable
 
+@Parcelize
 data class Pose(
     var rotation: SerializableFloat3 = SerializableFloat3(),
     var translation: SerializableFloat3 = SerializableFloat3()
-): Serializable
+) : Parcelable
 

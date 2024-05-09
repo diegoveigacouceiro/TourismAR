@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,7 +23,6 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,7 +50,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MyApp(
 ) {
-    val navController = rememberNavController()
+    val navHostController = rememberNavController()
 
     val screens = listOf(
         Screens.Home,
@@ -60,10 +60,10 @@ fun MyApp(
         Screens.SignUp
     )
 
-    NavHost(navController = navController, startDestination = Screens.SignIn.route) {
+    NavHost(navController = navHostController, startDestination = Screens.SignIn.route) {
         screens.forEach { screen ->
             composable(screen.route) {
-                MyApp2(navController = navController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
+                MyApp2(navController = navHostController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
             }
         }
     }
@@ -82,17 +82,20 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
             title = Screens.Home.route,
             selectedIcon = Icons.Filled.Home,
             unselectedIcon = Icons.Outlined.Home,
+        ),
+        NavigationItem(
+            title = Screens.ARScene.route,
+            selectedIcon = Icons.Filled.PlayArrow,
+            unselectedIcon = Icons.Outlined.PlayArrow,
         )
     )
-    var selectedItemIndex by rememberSaveable {
-        mutableStateOf(0)
-    }
+    var selectedItemIndex by rememberSaveable { mutableStateOf(0)}
 
 
 
     ModalNavigationDrawer(
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet() {
                 Spacer(modifier = Modifier.height(16.dp))
                 items.forEachIndexed { index, item ->
                     NavigationDrawerItem(

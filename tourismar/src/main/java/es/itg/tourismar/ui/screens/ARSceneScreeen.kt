@@ -30,6 +30,7 @@ import com.google.ar.core.Plane
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
 import es.itg.tourismar.R
+import es.itg.tourismar.data.model.anchor.AnchorRoute
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.arcore.createAnchorOrNull
 import io.github.sceneview.ar.arcore.getUpdatedPlanes
@@ -55,8 +56,7 @@ private val kModelFile = "models/damaged_helmet.glb"
 private val kMaxModelInstances = 10
 
 @Composable
-@Preview
-fun ARSceneScreen() {
+fun ARSceneScreen(anchorRoute: AnchorRoute?=null) {
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
     val materialLoader = rememberMaterialLoader(engine)

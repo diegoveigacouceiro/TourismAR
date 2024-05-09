@@ -26,7 +26,7 @@ class AnchorRepositoryImpl @Inject constructor(
         return flow {
             emit(Resource.Loading())
             val anchorRouteWithId = anchorRoute.copy(id = UUID.randomUUID().toString())
-            val result = firestore.collection("anchorRoutes").document(anchorRouteWithId.id).set(anchorRouteWithId)
+            val result = firestore.collection("anchorRoutes").document(anchorRouteWithId.id!!).set(anchorRouteWithId)
             emit(Resource.Success(result))
         }.catch {
             emit(Resource.Error(it.message.toString()))
@@ -95,7 +95,7 @@ class AnchorRepositoryImpl @Inject constructor(
     override fun updateAnchorRoute(anchorRoute: AnchorRoute): Flow<Resource<Unit>> {
         return flow {
             emit(Resource.Loading())
-            firestore.collection("anchorRoutes").document(anchorRoute.id).set(anchorRoute).await()
+            firestore.collection("anchorRoutes").document(anchorRoute.id!!).set(anchorRoute).await()
             emit(Resource.Success(Unit))
         }.catch {
             emit(Resource.Error(it.message.toString()))

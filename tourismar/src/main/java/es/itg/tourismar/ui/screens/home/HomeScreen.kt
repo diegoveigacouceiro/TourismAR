@@ -1,53 +1,62 @@
 package es.itg.tourismar.ui.screens.home
 
+import android.Manifest
+import android.net.Uri
+import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.os.bundleOf
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.AnimBuilder
 import androidx.navigation.NavController
+import androidx.navigation.NavType
+import androidx.navigation.Navigator
+import androidx.navigation.fragment.FragmentNavigatorExtras
+import androidx.navigation.navArgument
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
-import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.navigation.Screen
 import es.itg.tourismar.navigation.Screens
 
 
 @Composable
 fun HomeScreen(
     navController: NavController,
-    modifier: Modifier,
+    modifier: Modifier=Modifier,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -94,8 +103,8 @@ fun HomeScreenContent(
 
             HomeSection(title = R.string.app_name) {
                 anchorRoutesState?.let { routes ->
-                    AnchorRoutesGrid(routes, modifier, navController) {
-                        selectedAnchorRoute = it
+                    AnchorRoutesGrid(routes, modifier, navController) { anchorRoute ->
+                        selectedAnchorRoute = anchorRoute
                     }
                 }
             }
@@ -106,23 +115,22 @@ fun HomeScreenContent(
                 onDismissRequest = { selectedAnchorRoute = null },
                 properties = DialogProperties(dismissOnClickOutside = true)
             ) {
-                Box(
+                DetailedAnchorRouteCard(
+                    anchorRoute = anchorRoute,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    DetailedAnchorRouteCard(
-                        anchorRoute = anchorRoute,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        onBackClicked = { selectedAnchorRoute = null }
-                    )
-                }
+                        .align(Alignment.Center),
+                    onBackClicked = {
+                        navController.navigate(Screens.ARScene.route+"?anchorROute=${anchorRoute.toUriString()}"){
+                            launchSingleTop = true
+                            restoreState = true
+                            anim { AnimBuilder().enter }
+                        }
+                        selectedAnchorRoute = null }
+                )
             }
         }
     }
 }
-
-
 
 
 
@@ -178,15 +186,12 @@ fun AnchorRouteCard(
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.clickable {
-            onClick()
-        }
+        modifier = modifier.clickable { onClick() }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(8.dp)
         ) {
-
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -206,11 +211,11 @@ fun AnchorRouteCard(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = anchorRoute.anchorRouteName,
+                        text = anchorRoute.anchorRouteName!!,
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        text = anchorRoute.description,
+                        text = anchorRoute.description!!,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.width(200.dp),
                         overflow = TextOverflow.Ellipsis,
@@ -228,55 +233,47 @@ fun DetailedAnchorRouteCard(
     modifier: Modifier = Modifier,
     onBackClicked: () -> Unit
 ) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
+    Card(
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(),
+        modifier = modifier
     ) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
-                .heightIn(300.dp)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = anchorRoute.anchorRouteName,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Text(
-                    text = "Description: ${anchorRoute.description}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Text(
-                    text = "Location: ${anchorRoute.anchors[0].location}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+            Text(
+                text = anchorRoute.anchorRouteName!!,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "Description: ${anchorRoute.description}",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "Location: ${anchorRoute.anchors[0].location}",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            RequestMultiplePermissionsComposable(permissions = arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )) {
                 GoogleMap(
-                    modifier=Modifier.fillMaxSize(),
+                    modifier=Modifier.height(400.dp),
                     properties = MapProperties(true,true,true,
                         true,null,null
-                        )
-                )
-
-                // Botón de retroceso
-                IconButton(
-                    onClick = onBackClicked,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back"
                     )
-                }
+                )
+            }
+            ElevatedButton(
+                onClick = onBackClicked,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(text = "AR")
             }
         }
     }
@@ -308,4 +305,23 @@ fun SearchBar(
             .fillMaxWidth()
             .heightIn(min = 56.dp)
     )
+}
+
+@Composable
+fun RequestMultiplePermissionsComposable(
+    permissions: Array<String>,
+    onPermissionsGranted: @Composable () -> Unit
+) {
+    var permissionsGranted by rememberSaveable { mutableStateOf(false) }
+    val launcherMultiplePermissions = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissionsGranted = it.values.reduce { acc, next -> acc && next } }
+
+    LaunchedEffect(Unit) {
+        launcherMultiplePermissions.launch(permissions)
+
+    }
+    if (permissionsGranted){
+        onPermissionsGranted()
+    }
 }

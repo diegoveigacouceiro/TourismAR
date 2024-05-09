@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import es.itg.tourismar.data.model.anchor.Anchor
@@ -14,20 +13,13 @@ import es.itg.tourismar.data.model.anchor.Pose
 import es.itg.tourismar.data.model.anchor.SerializableFloat3
 import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
 import es.itg.tourismar.util.Resource
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-
-
 class HomeViewModel @Inject constructor(
     private val repository: AnchorRepository
 ) : ViewModel() {
-
-
-
     private val _anchorRoutes = MutableLiveData<List<AnchorRoute>?>()
     val anchorRoutes: LiveData<List<AnchorRoute>?> get() = _anchorRoutes
 
