@@ -59,29 +59,29 @@ class HomeViewModel @Inject constructor(
     private fun testAnchorRouteRepository() {
         // Crear una nueva ruta de ancla
         val anchor1 = Anchor(
-            id = "1",
-            location = CustomLatLng(43.3316415, -8.3923496),
-            model = "model1.glb",
-            name = "anchor1",
-            order = 1,
-            pose = Pose(SerializableFloat3(0f, 0f, 0f), SerializableFloat3(0f, 0f, 0f)),
-            serializedTime = "05/03/2024 17:22:11"
+           "1",
+            "model1.glb",
+            "anchor1",
+            1,
+            "05/03/2024 17:22:11",
+            CustomLatLng(43.3316415, -8.3923496),
+            Pose(SerializableFloat3(0f, 0f, 0f), SerializableFloat3(0f, 0f, 0f)),
+             "05/03/2024 17:22:11"
         )
+
         val anchor2 = Anchor(
-            id = "2",
-            location = CustomLatLng(43.3316415, -8.3923496),
-            model = "model.glb",
-            name = "anchor2",
-            order = 1,
-            pose = Pose(SerializableFloat3(0f, 0f, 0f), SerializableFloat3(0f, 0f, 0f)),
-            serializedTime = "05/03/2024 17:22:11"
+            "2",
+            "model2.glb",
+            "anchor2",
+            2,
+            "05/03/2024 17:22:11",
+            CustomLatLng(43.3316415, -8.3923496),
+            Pose(SerializableFloat3(0f, 0f, 0f), SerializableFloat3(0f, 0f, 0f)),
+            "05/03/2024 17:22:11"
         )
-        val anchorRoute = AnchorRoute(
-            anchorRouteName = "Route 2",
-            anchors = listOf(anchor1, anchor2),
-            imageUrl = "images/torre_de_hercules.jpeg",
-            description = "Route 2 Description"
-        )
+
+        val anchorRoute = AnchorRoute("Route 2","Route 2",listOf(anchor1, anchor2),"images/torre_de_hercules.jpeg","Route 2 Description")
+
 
         viewModelScope.launch {
             // Crear una nueva ruta de ancla

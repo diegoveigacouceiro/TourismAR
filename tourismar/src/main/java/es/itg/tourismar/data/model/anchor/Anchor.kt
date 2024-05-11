@@ -1,9 +1,8 @@
 package es.itg.tourismar.data.model.anchor
 
 import android.os.Parcelable
-import dev.romainguy.kotlin.math.Float3
 import kotlinx.parcelize.Parcelize
-import java.io.Serializable
+
 
 /**
  * Tipo de dato usado para guardar la información relacionada con una
@@ -19,38 +18,44 @@ import java.io.Serializable
  * @param apiLink Link o endpoint para mostrar contenido alojado en un ApiRest
  *
  */
+
 @Parcelize
 data class Anchor(
-    val id: String = "",
-    val model: String = "",
-    val name: String = "",
-    val order: Int = 0,
-    val serializedTime: String = "",
-    val location: CustomLatLng = CustomLatLng(0.0, 0.0),
-    val pose: Pose = Pose(),
-    val apiLink: String = ""
-) : Parcelable {
+    val id: String,
+    val model: String,
+    val name: String,
+    val order: Int,
+    val serializedTime: String,
+    val location: CustomLatLng,
+    val pose: Pose,
+    val apiLink: String
+) : Parcelable{
     constructor() : this("", "", "", 0, "", CustomLatLng(0.0, 0.0), Pose(), "")
 }
 
-
-
 @Parcelize
 data class CustomLatLng(
-    val latitude: Double = 0.0,
-    val longitude: Double = 0.0
-) : Parcelable
+    val latitude: Double,
+    val longitude: Double
+) : Parcelable{
+    constructor() : this(0.0, 0.0)
+}
 
 @Parcelize
 data class SerializableFloat3(
-    val x: Float = 0f,
-    val y: Float = 0f,
-    val z: Float = 0f
-) : Parcelable
+    val x: Float,
+    val y: Float,
+    val z: Float
+) : Parcelable{
+    constructor() : this(0f, 0f, 0f)
+}
 
 @Parcelize
 data class Pose(
-    var rotation: SerializableFloat3 = SerializableFloat3(),
-    var translation: SerializableFloat3 = SerializableFloat3()
-) : Parcelable
+    var rotation: SerializableFloat3,
+    var translation: SerializableFloat3
+) : Parcelable{
+    constructor() : this(SerializableFloat3(), SerializableFloat3())
+}
+
 

@@ -1,17 +1,13 @@
 package es.itg.tourismar.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import es.itg.tourismar.MyApp2
 import es.itg.tourismar.data.model.anchor.AnchorRoute
-import es.itg.tourismar.ui.screens.ARSceneScreen
+import es.itg.tourismar.ui.screens.arscreen.ARSceneScreen
 import es.itg.tourismar.ui.screens.SettingsScreen
 import es.itg.tourismar.ui.screens.authentication.login.SignInScreen
 import es.itg.tourismar.ui.screens.authentication.signup.SignUpScreen
@@ -28,7 +24,7 @@ fun NavigationController() {
         Screens.SignUp
     )
 
-    NavHost(navController = navController, startDestination = Screens.SignIn.route) {
+    NavHost(navController = navController, startDestination = Screens.ARScene.route) {
         screens.forEach { screen ->
             when (screen) {
                 is Screens.Home -> {
@@ -42,20 +38,15 @@ fun NavigationController() {
                     composable(route = screen.route) {
                         SettingsScreen()
                         MyApp2(navController, onLogout = {FirebaseAuth.getInstance().signOut()}, currentScreen = screen)
-
                     }
                 }
                 is Screens.ARScene -> {
-                    composable(route = screen.route + "?anchorRoute={anchorRoute}",
-                        arguments = listOf(navArgument("anchorRoute") {
-                            type = NavType.ParcelableType(AnchorRoute::class.java)
-                            nullable = true
-                        })) {
-                        val anchorRoute = it.arguments?.getParcelable<AnchorRoute>("anchorRoute")
-                        ARSceneScreen(anchorRoute = anchorRoute)
-                        MyApp2(navController, onLogout = {FirebaseAuth.getInstance().signOut()}, currentScreen = screen)
-
+                    composable(route = screen.route) {
+                        val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.get("anchorRoute")
+                        ARSceneScreen(navController, anchorRoute = anchorRoute)
                     }
+
+
                 }
                 is Screens.SignIn -> {
                     composable(route = screen.route) {

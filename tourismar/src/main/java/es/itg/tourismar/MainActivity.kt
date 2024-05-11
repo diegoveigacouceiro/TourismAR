@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import dagger.hilt.android.AndroidEntryPoint
-import es.itg.tourismar.navigation.MyAppWithBackHandler
 import es.itg.tourismar.navigation.NavigationController
 import es.itg.tourismar.ui.theme.SceneViewTheme
 

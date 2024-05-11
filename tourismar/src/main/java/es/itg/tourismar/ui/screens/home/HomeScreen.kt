@@ -1,8 +1,6 @@
 package es.itg.tourismar.ui.screens.home
 
 import android.Manifest
-import android.net.Uri
-import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
@@ -39,17 +37,14 @@ import androidx.core.os.bundleOf
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.AnimBuilder
 import androidx.navigation.NavController
-import androidx.navigation.NavType
-import androidx.navigation.Navigator
-import androidx.navigation.fragment.FragmentNavigatorExtras
-import androidx.navigation.navArgument
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
-import es.itg.tourismar.navigation.Screen
 import es.itg.tourismar.navigation.Screens
 
 
@@ -120,11 +115,9 @@ fun HomeScreenContent(
                     modifier = Modifier
                         .align(Alignment.Center),
                     onBackClicked = {
-                        navController.navigate(Screens.ARScene.route+"?anchorROute=${anchorRoute.toUriString()}"){
-                            launchSingleTop = true
-                            restoreState = true
-                            anim { AnimBuilder().enter }
-                        }
+                        navController.currentBackStackEntry?.savedStateHandle?.set("anchorRoute",anchorRoute)
+                        navController.navigate(Screens.ARScene.route)
+
                         selectedAnchorRoute = null }
                 )
             }

@@ -1,15 +1,11 @@
-package es.itg.tourismar.ui.screens
+package es.itg.tourismar.ui.screens.arscreen
 
-import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,11 +13,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.google.android.filament.Engine
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
@@ -29,7 +24,6 @@ import com.google.ar.core.Frame
 import com.google.ar.core.Plane
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
-import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.arcore.createAnchorOrNull
@@ -39,6 +33,7 @@ import io.github.sceneview.ar.getDescription
 import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.node.CloudAnchorNode
 import io.github.sceneview.ar.rememberARCameraNode
+import io.github.sceneview.ar.rememberARCameraStream
 import io.github.sceneview.loaders.MaterialLoader
 import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.model.ModelInstance
@@ -46,6 +41,7 @@ import io.github.sceneview.node.CubeNode
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.rememberCollisionSystem
 import io.github.sceneview.rememberEngine
+import io.github.sceneview.rememberMainLightNode
 import io.github.sceneview.rememberMaterialLoader
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberNodes
@@ -56,27 +52,26 @@ private val kModelFile = "models/damaged_helmet.glb"
 private val kMaxModelInstances = 10
 
 @Composable
-fun ARSceneScreen(anchorRoute: AnchorRoute?=null) {
+fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?) {
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
     val materialLoader = rememberMaterialLoader(engine)
     val cameraNode = rememberARCameraNode(engine)
+    val cameraStream = rememberARCameraStream(materialLoader = materialLoader)
     val childNodes = rememberNodes()
     val view = rememberView(engine)
     val collisionSystem = rememberCollisionSystem(view)
     var session2 by  remember {
         mutableStateOf<Session?>(null)
     }
-
+    val context = LocalContext.current
     var planeRenderer by remember { mutableStateOf(true) }
-
     val modelInstances = remember { mutableListOf<ModelInstance>() }
     var trackingFailureReason by remember {
         mutableStateOf<TrackingFailureReason?>(null)
     }
     var frame by remember { mutableStateOf<Frame?>(null) }
-
-
+    val mainLightNode = rememberMainLightNode(engine = engine)
 
     ARScene(
         modifier = Modifier.fillMaxSize(),
@@ -85,6 +80,10 @@ fun ARSceneScreen(anchorRoute: AnchorRoute?=null) {
         view = view,
         modelLoader = modelLoader,
         collisionSystem = collisionSystem,
+        sessionCameraConfig = {
+            it.cameraConfig
+        },
+        mainLightNode = mainLightNode,
         sessionConfiguration = { session, config ->
             // Activation Depth occlusion
             config.depthMode =
@@ -92,32 +91,25 @@ fun ARSceneScreen(anchorRoute: AnchorRoute?=null) {
                     true -> Config.DepthMode.AUTOMATIC
                     false -> Config.DepthMode.DISABLED
                 }
-            cameraNode.session?.isDepthModeSupported(Config.DepthMode.DISABLED)
-
+            cameraStream.isDepthOcclusionEnabled = false
             // Activación Geospatial
-//            if (session.isGeospatialModeSupported(Config.GeospatialMode.ENABLED))
-//                config.geospatialMode = Config.GeospatialMode.ENABLED
-//            config.streetscapeGeometryMode = Config.StreetscapeGeometryMode.ENABLED
-
+            if (session.isGeospatialModeSupported(Config.GeospatialMode.ENABLED))
+                config.geospatialMode = Config.GeospatialMode.ENABLED
+            config.streetscapeGeometryMode = Config.StreetscapeGeometryMode.ENABLED
             // Activación CloudAnchors
             config.cloudAnchorMode = Config.CloudAnchorMode.ENABLED
-
             // Configuración luz
-//            config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
-//
-//            config.focusMode = Config.FocusMode.AUTO
-//
-//            config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
-//            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
-//            //config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
-//            cameraNode.focalLength = 50.0
-
+            config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+            config.focusMode = Config.FocusMode.AUTO
+            config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
+            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
+            //config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+            cameraNode.focalLength = 50.0
         },
         cameraNode = cameraNode,
+        cameraStream = cameraStream,
         planeRenderer = planeRenderer,
-        onTrackingFailureChanged = {
-            trackingFailureReason = it
-        },
+        onTrackingFailureChanged = { trackingFailureReason = it },
         onSessionUpdated = { session, updatedFrame ->
             frame = updatedFrame
             session2 = session
@@ -155,9 +147,7 @@ fun ARSceneScreen(anchorRoute: AnchorRoute?=null) {
                                             when (state) {
                                                 Anchor.CloudAnchorState.SUCCESS -> {
                                                     Log.d("anchor","cloud Ancho id: $cloudAnchorId")
-
                                                 }
-
                                                 else -> {}
                                             }
                                         }
@@ -172,16 +162,14 @@ fun ARSceneScreen(anchorRoute: AnchorRoute?=null) {
         )
     )
 
-
-
     Text(
         modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth(),
         textAlign = TextAlign.Center,
-        fontSize = 28.sp,
+        fontSize = 16.sp,
         color = Color.White,
-        text = trackingFailureReason?.getDescription(LocalContext.current) ?: stringResource(R.string.app_name)
+        text = trackingFailureReason?.getDescription(LocalContext.current) ?: ""
     )
 }
 

@@ -40,7 +40,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
 import es.itg.tourismar.navigation.NavigationItem
 import es.itg.tourismar.navigation.Screens
-import es.itg.tourismar.ui.screens.ARSceneScreen
+import es.itg.tourismar.ui.screens.arscreen.ARSceneScreen
 import es.itg.tourismar.ui.screens.home.HomeScreen
 import es.itg.tourismar.ui.screens.SettingsScreen
 import es.itg.tourismar.ui.screens.authentication.login.SignInScreen
@@ -171,7 +171,7 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
                 when (currentScreen) {
                     is Screens.Home -> HomeScreen(navController,Modifier)
                     is Screens.Settings -> SettingsScreen()
-                    is Screens.ARScene -> ARSceneScreen()
+                    is Screens.ARScene -> ARSceneScreen(navController,null)
                     is Screens.SignIn -> SignInScreen(navController)
                     is Screens.SignUp -> SignUpScreen(navController)
                     null -> TODO()
