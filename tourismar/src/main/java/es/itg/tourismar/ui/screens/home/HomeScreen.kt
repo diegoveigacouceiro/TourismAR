@@ -16,8 +16,10 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -33,19 +35,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.os.bundleOf
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.AnimBuilder
 import androidx.navigation.NavController
 import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberImagePainter
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.navigation.Screens
+import es.itg.tourismar.ui.screens.googleMap.MapComposable
 
 
 @Composable
@@ -255,12 +254,16 @@ fun DetailedAnchorRouteCard(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION
             )) {
-                GoogleMap(
-                    modifier=Modifier.height(400.dp),
-                    properties = MapProperties(true,true,true,
-                        true,null,null
-                    )
-                )
+                ElevatedCard(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(500.dp),
+                shape = ShapeDefaults.Medium,
+                elevation =  CardDefaults.elevatedCardElevation(),
+                colors = CardDefaults.elevatedCardColors(),
+            ) {
+                MapComposable(anchorRoute = anchorRoute)
+            }
             }
             ElevatedButton(
                 onClick = onBackClicked,

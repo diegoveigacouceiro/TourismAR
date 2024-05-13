@@ -24,7 +24,7 @@ fun NavigationController() {
         Screens.SignUp
     )
 
-    NavHost(navController = navController, startDestination = Screens.ARScene.route) {
+    NavHost(navController = navController, startDestination = Screens.Home.route) {
         screens.forEach { screen ->
             when (screen) {
                 is Screens.Home -> {

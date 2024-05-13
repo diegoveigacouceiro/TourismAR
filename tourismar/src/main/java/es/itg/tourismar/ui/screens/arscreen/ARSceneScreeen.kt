@@ -1,215 +1,217 @@
 package es.itg.tourismar.ui.screens.arscreen
 
-import android.util.Log
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.twotone.LocationOn
+import androidx.compose.material.icons.twotone.Settings
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ShapeDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.google.android.filament.Engine
-import com.google.ar.core.Anchor
 import com.google.ar.core.Config
-import com.google.ar.core.Frame
-import com.google.ar.core.Plane
-import com.google.ar.core.Session
-import com.google.ar.core.TrackingFailureReason
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import io.github.sceneview.ar.ARScene
-import io.github.sceneview.ar.arcore.createAnchorOrNull
-import io.github.sceneview.ar.arcore.getUpdatedPlanes
-import io.github.sceneview.ar.arcore.isValid
 import io.github.sceneview.ar.getDescription
-import io.github.sceneview.ar.node.AnchorNode
-import io.github.sceneview.ar.node.CloudAnchorNode
-import io.github.sceneview.ar.rememberARCameraNode
-import io.github.sceneview.ar.rememberARCameraStream
-import io.github.sceneview.loaders.MaterialLoader
-import io.github.sceneview.loaders.ModelLoader
-import io.github.sceneview.model.ModelInstance
-import io.github.sceneview.node.CubeNode
-import io.github.sceneview.node.ModelNode
-import io.github.sceneview.rememberCollisionSystem
-import io.github.sceneview.rememberEngine
-import io.github.sceneview.rememberMainLightNode
-import io.github.sceneview.rememberMaterialLoader
-import io.github.sceneview.rememberModelLoader
-import io.github.sceneview.rememberNodes
 import io.github.sceneview.rememberOnGestureListener
-import io.github.sceneview.rememberView
 
-private val kModelFile = "models/damaged_helmet.glb"
-private val kMaxModelInstances = 10
+private const val kModelFile = "models/damaged_helmet.glb"
+private const val kMaxModelInstances = 10
+
 
 @Composable
-fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?) {
-    val engine = rememberEngine()
-    val modelLoader = rememberModelLoader(engine)
-    val materialLoader = rememberMaterialLoader(engine)
-    val cameraNode = rememberARCameraNode(engine)
-    val cameraStream = rememberARCameraStream(materialLoader = materialLoader)
-    val childNodes = rememberNodes()
-    val view = rememberView(engine)
-    val collisionSystem = rememberCollisionSystem(view)
-    var session2 by  remember {
-        mutableStateOf<Session?>(null)
-    }
-    val context = LocalContext.current
-    var planeRenderer by remember { mutableStateOf(true) }
-    val modelInstances = remember { mutableListOf<ModelInstance>() }
-    var trackingFailureReason by remember {
-        mutableStateOf<TrackingFailureReason?>(null)
-    }
-    var frame by remember { mutableStateOf<Frame?>(null) }
-    val mainLightNode = rememberMainLightNode(engine = engine)
+fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewModel: ARSceneViewModel = hiltViewModel()) {
+    val arSceneController = ARSceneControllerFactory.create(viewModel)
 
-    ARScene(
-        modifier = Modifier.fillMaxSize(),
-        childNodes = childNodes,
-        engine = engine,
-        view = view,
-        modelLoader = modelLoader,
-        collisionSystem = collisionSystem,
-        sessionCameraConfig = {
-            it.cameraConfig
-        },
-        mainLightNode = mainLightNode,
-        sessionConfiguration = { session, config ->
-            // Activation Depth occlusion
-            config.depthMode =
-                when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
-                    true -> Config.DepthMode.AUTOMATIC
-                    false -> Config.DepthMode.DISABLED
-                }
-            cameraStream.isDepthOcclusionEnabled = false
-            // Activación Geospatial
-            if (session.isGeospatialModeSupported(Config.GeospatialMode.ENABLED))
-                config.geospatialMode = Config.GeospatialMode.ENABLED
-            config.streetscapeGeometryMode = Config.StreetscapeGeometryMode.ENABLED
-            // Activación CloudAnchors
-            config.cloudAnchorMode = Config.CloudAnchorMode.ENABLED
-            // Configuración luz
-            config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
-            config.focusMode = Config.FocusMode.AUTO
-            config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
-            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
-            //config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
-            cameraNode.focalLength = 50.0
-        },
-        cameraNode = cameraNode,
-        cameraStream = cameraStream,
-        planeRenderer = planeRenderer,
-        onTrackingFailureChanged = { trackingFailureReason = it },
-        onSessionUpdated = { session, updatedFrame ->
-            frame = updatedFrame
-            session2 = session
-
-            if (childNodes.isEmpty()) {
-                updatedFrame.getUpdatedPlanes()
-                    .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
-                    ?.let { it.createAnchorOrNull(it.centerPose) }?.let { anchor ->
-                        childNodes += createAnchorNode(
-                            engine = engine,
-                            modelLoader = modelLoader,
-                            materialLoader = materialLoader,
-                            modelInstances = modelInstances,
-                            anchor = anchor
-                        )
-                    }
-            }
-        },
-        onGestureListener = rememberOnGestureListener(
-            onSingleTapConfirmed = { motionEvent, node ->
-                if (node == null) {
-                    val hitResults = frame?.hitTest(motionEvent.x, motionEvent.y)
-                    hitResults?.firstOrNull {
-                        it.isValid(
-                            depthPoint = false,
-                            point = false
-                        )
-                    }?.createAnchorOrNull()
-                        ?.let { anchor ->
-                            planeRenderer = false
-                            CloudAnchorNode(engine, anchor).apply {
-                                try {
-                                    session2?.let {
-                                        host(it, 365) { cloudAnchorId, state ->
-                                            when (state) {
-                                                Anchor.CloudAnchorState.SUCCESS -> {
-                                                    Log.d("anchor","cloud Ancho id: $cloudAnchorId")
-                                                }
-                                                else -> {}
-                                            }
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    Log.d("anchor","cloud Anchor")
-                                }
-                            }
-                        }
-                }
-            }
-        )
-    )
-
-    Text(
-        modifier = Modifier
-            .padding(16.dp)
-            .fillMaxWidth(),
-        textAlign = TextAlign.Center,
-        fontSize = 16.sp,
-        color = Color.White,
-        text = trackingFailureReason?.getDescription(LocalContext.current) ?: ""
+    Scaffold(
+        floatingActionButton = {
+            ARSceneFloatingActions(
+                navController = navController,
+                anchorRoute,
+                arSceneController
+            )
+       },
+        content = { paddingValues ->
+            ARSceneScreenContent(
+                navController = navController,
+                anchorRoute = anchorRoute,
+                arSceneController = arSceneController,
+                paddingValues = paddingValues
+            )
+        }
     )
 }
+@Composable
+fun ARSceneScreenContent(navController: NavController, anchorRoute: AnchorRoute?,
+                         arSceneController: ARSceneController,paddingValues: PaddingValues
+) {
+    Surface (
+        modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize(),
+        color = Color.Black
+    ) {
+        ARScene(
+            modifier = Modifier.fillMaxSize(),
+            childNodes = arSceneController.childNodes.map { it.second },
+            engine = arSceneController.engine,
+            view = arSceneController.view,
+            modelLoader = arSceneController.modelLoader,
+            collisionSystem = arSceneController.collisionSystem,
+            sessionCameraConfig = {
+                it.cameraConfig
+            },
+            mainLightNode = arSceneController.mainLightNode,
+            sessionConfiguration = { session, config ->
+                // Activation Depth occlusion
+                config.depthMode =
+                    when (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
+                        true -> Config.DepthMode.AUTOMATIC
+                        false -> Config.DepthMode.DISABLED
+                    }
+                arSceneController.cameraStream.isDepthOcclusionEnabled = false
 
+                // Activación Geospatial
+                if (session.isGeospatialModeSupported(Config.GeospatialMode.ENABLED))
+                    config.geospatialMode = Config.GeospatialMode.ENABLED
+                config.streetscapeGeometryMode = Config.StreetscapeGeometryMode.ENABLED
 
+                // Activación CloudAnchors
+                config.cloudAnchorMode = Config.CloudAnchorMode.ENABLED
 
-fun createAnchorNode(
-    engine: Engine,
-    modelLoader: ModelLoader,
-    materialLoader: MaterialLoader,
-    modelInstances: MutableList<ModelInstance>,
-    anchor: Anchor
-): AnchorNode {
-    val anchorNode = AnchorNode(engine = engine, anchor = anchor)
-    val modelNode = ModelNode(
-        modelInstance = modelInstances.apply {
-            if (isEmpty()) {
-                this += modelLoader.createInstancedModel(kModelFile, kMaxModelInstances)
+                // Configuración luz
+                config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+
+                config.focusMode = Config.FocusMode.AUTO
+
+                config.instantPlacementMode = Config.InstantPlacementMode.DISABLED
+                config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
+                //config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
+                arSceneController.cameraNode.focalLength = 50.0
+            },
+            cameraNode = arSceneController.cameraNode,
+            cameraStream = arSceneController.cameraStream,
+            planeRenderer = arSceneController.planeRenderer,
+            onTrackingFailureChanged = { arSceneController.trackingFailureReason = it },
+            onSessionUpdated = { session, updatedFrame ->
+                arSceneController.frame = updatedFrame
+                arSceneController.session = session
+//                arSceneController.handleCloudAnchors(anchorRoute)
+
+            },
+
+            onGestureListener = rememberOnGestureListener(
+                onSingleTapConfirmed = { motionEvent, node ->
+
+                },
+
+            )
+        )
+
+        Text(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            fontSize = 16.sp,
+            color = Color.White,
+            text = arSceneController.trackingFailureReason?.getDescription(LocalContext.current)
+                ?: ""
+        )
+    }
+}
+
+@Composable
+fun ARSceneFloatingActions(navController: NavController,anchorRoute: AnchorRoute?, viewController: ARSceneController) {
+    Column {
+        ARSceneFloatingActionButton(
+            onClick = {
+                ShowARSceneOptionsDialog(viewController)
+            },
+            icon = Icons.TwoTone.Settings,
+            contentDescription = "Properties",
+            modifier = Modifier.padding(8.dp)
+        )
+
+        ARSceneFloatingActionButton(
+            onClick = {
+                MapComposable(anchorRoute= anchorRoute)
+            },
+            icon = Icons.TwoTone.LocationOn,
+            contentDescription = "Map",
+            modifier = Modifier.padding(8.dp)
+        )
+    }
+}
+
+@Composable
+fun ARSceneFloatingActionButton(
+    onClick: @Composable () -> Unit,
+    icon: ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    val showDialog = remember { mutableStateOf(false) }
+
+    FloatingActionButton(
+        onClick = { showDialog.value = true },
+        modifier = modifier
+    ) {
+        Icon(imageVector = icon, contentDescription = contentDescription)
+    }
+
+    if (showDialog.value) {
+        Dialog(
+            onDismissRequest = { showDialog.value = false },
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+                securePolicy = SecureFlagPolicy.SecureOn
+            )
+        ){
+            ElevatedCard(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .size(600.dp),
+                shape = ShapeDefaults.Medium,
+                elevation =  CardDefaults.elevatedCardElevation(),
+                colors = CardDefaults.elevatedCardColors(),
+            ) {
+                onClick()
             }
-        }.removeLast(),
-        // Scale to fit in a 0.5 meters cube
-        scaleToUnits = 0.5f
-    ).apply {
-        // Model Node needs to be editable for independent rotation from the anchor rotation
-        isEditable = true
-    }
-    val boundingBoxNode = CubeNode(
-        engine,
-        size = modelNode.extents,
-        center = modelNode.center,
-        materialInstance = materialLoader.createColorInstance(Color.White.copy(alpha = 0.5f))
-    ).apply {
-        isVisible = false
-    }
-    modelNode.addChildNode(boundingBoxNode)
-    anchorNode.addChildNode(modelNode)
-
-    listOf(modelNode, anchorNode).forEach {
-        it.onEditingChanged = { editingTransforms ->
-            boundingBoxNode.isVisible = editingTransforms.isNotEmpty()
         }
     }
-    return anchorNode
 }
+
+@Composable
+fun ShowARSceneOptionsDialog(viewController: ARSceneController) {
+    // Implementa el AlertDialog con las opciones del ARScene
+}
+
+
+

@@ -2,6 +2,9 @@ package es.itg.tourismar.data.model.anchor
 
 import android.net.Uri
 import android.os.Parcelable
+import com.google.android.gms.maps.model.LatLng
+import es.itg.tourismar.R
+import es.itg.tourismar.ui.screens.googleMap.MapMarkerItem
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -12,14 +15,18 @@ data class AnchorRoute(
     val imageUrl: String,
     val description: String
 ): Parcelable{
-    fun toUriString(): String {
-        return Uri.Builder()
-            .scheme("your_scheme")
-            .authority("your_authority")
-            .appendPath(anchorRouteName)
-            .build()
-            .toString()
-    }
 
     constructor() : this("","", emptyList(), "", "")
+
+
+    fun getAnchorLocations(): List<MapMarkerItem> {
+        return anchors.map { anchor ->
+            MapMarkerItem(
+                latLng = LatLng(anchor.location.latitude, anchor.location.longitude),
+                title = anchor.name,
+                iconResourceId = R.drawable.googleg_standard_color_18
+            )
+        }
+    }
+
 }

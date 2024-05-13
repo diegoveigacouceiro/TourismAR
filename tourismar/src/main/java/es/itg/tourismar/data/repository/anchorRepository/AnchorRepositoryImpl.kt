@@ -48,7 +48,6 @@ class AnchorRepositoryImpl @Inject constructor(
         }
     }
 
-    // Por ejemplo, en tu repositorio:
     override fun observeAnchorRoutes(): Flow<Resource<List<AnchorRoute>>> {
         return callbackFlow<Resource<List<AnchorRoute>>> {
             val listener = firestore.collection("anchorRoutes")
