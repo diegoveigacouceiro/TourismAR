@@ -1,10 +1,7 @@
 package es.itg.tourismar.data.repository.anchorRepository
 
 import com.google.android.gms.tasks.Task
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.toObject
-import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.util.Resource
 import kotlinx.coroutines.channels.awaitClose
@@ -17,7 +14,6 @@ import java.util.UUID
 import javax.inject.Inject
 
 
-
 class AnchorRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ): AnchorRepository {
@@ -26,7 +22,7 @@ class AnchorRepositoryImpl @Inject constructor(
         return flow {
             emit(Resource.Loading())
             val anchorRouteWithId = anchorRoute.copy(id = UUID.randomUUID().toString())
-            val result = firestore.collection("anchorRoutes").document(anchorRouteWithId.id!!).set(anchorRouteWithId)
+            val result = firestore.collection("anchorRoutes").document(anchorRouteWithId.id).set(anchorRouteWithId)
             emit(Resource.Success(result))
         }.catch {
             emit(Resource.Error(it.message.toString()))
@@ -72,14 +68,6 @@ class AnchorRepositoryImpl @Inject constructor(
         }
     }
 
-
-
-
-
-
-
-
-
     override fun readAnchorRouteById(id: String): Flow<Resource<AnchorRoute?>> {
         return flow {
             emit(Resource.Loading())
@@ -94,7 +82,7 @@ class AnchorRepositoryImpl @Inject constructor(
     override fun updateAnchorRoute(anchorRoute: AnchorRoute): Flow<Resource<Unit>> {
         return flow {
             emit(Resource.Loading())
-            firestore.collection("anchorRoutes").document(anchorRoute.id!!).set(anchorRoute).await()
+            firestore.collection("anchorRoutes").document(anchorRoute.id).set(anchorRoute).await()
             emit(Resource.Success(Unit))
         }.catch {
             emit(Resource.Error(it.message.toString()))

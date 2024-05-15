@@ -34,11 +34,15 @@ import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.ar.core.Config
+import com.google.ar.core.Plane
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import io.github.sceneview.ar.ARScene
+import io.github.sceneview.ar.arcore.createAnchorOrNull
+import io.github.sceneview.ar.arcore.getUpdatedPlanes
 import io.github.sceneview.ar.getDescription
 import io.github.sceneview.rememberOnGestureListener
+import kotlinx.coroutines.launch
 
 private const val kModelFile = "models/damaged_helmet.glb"
 private const val kMaxModelInstances = 10
@@ -122,12 +126,38 @@ fun ARSceneScreenContent(navController: NavController, anchorRoute: AnchorRoute?
                 arSceneController.frame = updatedFrame
                 arSceneController.session = session
 //                arSceneController.handleCloudAnchors(anchorRoute)
+                if (arSceneController.childNodes.isEmpty()) {
+                    updatedFrame.getUpdatedPlanes()
+                        .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
+                        ?.let { it.createAnchorOrNull(it.centerPose) }?.let { anchor ->
+                            arSceneController.createAnchorNodeFromAnchor(anchor).let {
+                                arSceneController.viewModelScope.launch {
+                                    with(arSceneController) {
+                                        childNodes.add(Pair(null, it))
+                                        createAnchorNode(anchorNode = it)
+                                    }
+                                }
+                            }
+                        }
+                }
 
             },
 
             onGestureListener = rememberOnGestureListener(
                 onSingleTapConfirmed = { motionEvent, node ->
+                   arSceneController.createAnchorFromMotionEvent(motionEvent).let { anchor ->
+                       if (anchor != null) {
+                           arSceneController.createAnchorNodeFromAnchor(anchor).let {
+                               arSceneController.viewModelScope.launch {
+                                   with(arSceneController) {
+                                       childNodes.add(Pair(null, it))
+                                       createAnchorNode(anchorNode = it)
+                                   }
+                               }
+                           }
+                       }
 
+                   }
                 },
 
             )

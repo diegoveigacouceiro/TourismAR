@@ -6,8 +6,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
-import es.itg.tourismar.data.repository.anchorRepository.AnchorRepositoryImpl
 import es.itg.tourismar.data.repository.authRepository.UserAuthRepository
 import es.itg.tourismar.data.repository.authRepository.UserAuthRepositoryImpl
 import javax.inject.Singleton
@@ -26,7 +24,7 @@ object AppModule {
     @Provides
     @Singleton
     fun providesAuthRepositoryImpl(firebaseAuth: FirebaseAuth, firebaseFirestore: FirebaseFirestore):UserAuthRepository{
-        return UserAuthRepositoryImpl(firebaseAuth, firebaseFirestore )
+        return UserAuthRepositoryImpl(firebaseAuth, firebaseFirestore)
     }
 
 

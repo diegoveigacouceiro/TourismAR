@@ -5,7 +5,6 @@ import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.UserDataWriter
 import es.itg.tourismar.data.model.users.User
 import es.itg.tourismar.data.model.users.UserLevel
 import es.itg.tourismar.util.Resource
