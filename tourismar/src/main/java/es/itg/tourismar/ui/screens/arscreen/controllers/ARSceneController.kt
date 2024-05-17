@@ -1,8 +1,9 @@
-package es.itg.tourismar.ui.screens.arscreen
+package es.itg.tourismar.ui.screens.arscreen.controllers
 
 import android.content.Context
 import android.util.Log
 import android.view.MotionEvent
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -17,9 +18,14 @@ import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
 import com.google.ar.core.TrackingState
 import es.itg.tourismar.data.model.anchor.Anchor
+import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.data.model.anchor.HostingState
+import es.itg.tourismar.data.model.anchor.ScanningState
+import es.itg.tourismar.ui.screens.arscreen.ARSceneViewModel
 import io.github.sceneview.ar.camera.ARCameraStream
 import io.github.sceneview.ar.node.ARCameraNode
 import io.github.sceneview.ar.node.AnchorNode
+import io.github.sceneview.ar.node.CloudAnchorNode
 import io.github.sceneview.collision.CollisionSystem
 import io.github.sceneview.collision.Plane
 import io.github.sceneview.loaders.MaterialLoader
@@ -35,6 +41,7 @@ import io.github.sceneview.node.Node
 import io.github.sceneview.utils.loadFileBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
@@ -48,23 +55,115 @@ class ARSceneController(
     val collisionSystem: CollisionSystem,
     private val context: Context,
     val mainLightNode: LightNode,
-    val arSceneViewModel: ARSceneViewModel
+    val arSceneViewModel: ARSceneViewModel,
+    var frame: Frame?,
+    var session: Session?,
+    var trackingFailureReason: TrackingFailureReason?,
 ) {
     val childNodes = SnapshotStateList<Pair<String?, Node>>()
-    var planeRenderer by mutableStateOf(false)
-    var trackingFailureReason by mutableStateOf<TrackingFailureReason?>(null)
-    var frame by mutableStateOf<Frame?>(null)
-    var session by mutableStateOf<Session?>(null)
+    var planeRenderer by mutableStateOf(true)
     var isLoading by mutableStateOf(false)
     val viewModelScope = CoroutineScope(Dispatchers.Main)
 
+    var scanningState by mutableStateOf(ScanningState.SCANNING)
+    var scanningMessage by mutableStateOf("Move your device around to scan the environment.")
+    var hostingState by  mutableStateOf(HostingState.PLACING)
+    var placedAnchor by mutableStateOf<com.google.ar.core.Anchor?>(null)
+    var resolvedAnchors by mutableStateOf(mutableMapOf<String, Pair<Anchor, Boolean>>())
 
 
 
-    fun createAnchorFromMotionEvent(
-        motionEvent: MotionEvent
-    ):com.google.ar.core.Anchor? {
 
+    /**
+     * ARSCENE HOSTING FUNCTIONS
+     **/
+
+    fun handleHosting(anchor: com.google.ar.core.Anchor) {
+        hostingState = HostingState.HOSTING
+        hostCloudAnchor(anchor,
+            onSuccess = { cloudAnchorId ->
+                Log.d("ARSceneScreen", "Successfully hosted cloud anchor with ID: $cloudAnchorId")
+                hostingState = HostingState.PLACING
+            },
+            onFailure = { exception ->
+                Log.e("ARSceneScreen", "Failed to host cloud anchor", exception)
+                Toast.makeText(context, "Failed to host cloud anchor.", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    private fun hostCloudAnchor(anchor: com.google.ar.core.Anchor, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
+        val session = session ?: return onFailure(Exception("Session is null"))
+        session.hostCloudAnchorAsync(anchor,365) { hostedAnchor, cloudState ->
+            if (cloudState == com.google.ar.core.Anchor.CloudAnchorState.SUCCESS) {
+                onSuccess(hostedAnchor)
+            } else {
+                onFailure(Exception("Failed to host cloud anchor, state: $cloudState"))
+            }
+        }
+    }
+
+    fun updateScanningState(updatedFrame: Frame) {
+        val trackingState = updatedFrame.camera.trackingState
+        if (trackingState == TrackingState.TRACKING) {
+            // Check if enough data has been collected
+            // This is a simplified condition, you might want to use more sophisticated checks
+            if (updatedFrame.updatedAnchors.isNotEmpty()) {
+                scanningState = ScanningState.READY_TO_HOST
+                scanningMessage = "Scan complete. You can now place and host an anchor."
+            }
+        }
+    }
+
+
+    /**
+     * ARSCENE RESOLVING FUNCTIONS
+     **/
+    fun resolveCloudAnchors(anchorRoute: AnchorRoute?) {
+        anchorRoute?.anchors?.forEach { anchor ->
+            if (!resolvedAnchors.containsKey(anchor.id)) {
+                resolvedAnchors[anchor.id] = Pair(anchor, false)
+                resolveCloudAnchorById(
+                    anchor.id,
+                    onSuccess = { cloudAnchorNode ->
+                        viewModelScope.launch {
+                            handleResolvedAnchor(anchor, cloudAnchorNode)
+                            resolvedAnchors[anchor.id] = Pair(anchor,true)
+                        }
+                    },
+                    onFailure = { exception ->
+                        Log.e("ARSceneScreen", "Failed to resolve cloud anchor with ID: ${anchor.id}", exception)
+                    }
+                )
+            }
+        }
+    }
+
+
+    private fun resolveCloudAnchorById(cloudAnchorId: String, onSuccess: (CloudAnchorNode) -> Unit, onFailure: (Exception) -> Unit) {
+        CloudAnchorNode.resolve(engine = engine, session = session!!, cloudAnchorId = cloudAnchorId) { state, node ->
+            when(state){
+                com.google.ar.core.Anchor.CloudAnchorState.SUCCESS -> node?.let { onSuccess(it) }
+                else -> onFailure(Exception("Failed to resolve cloud anchor with ID: $cloudAnchorId, state: ${state.name}"))
+            }
+        }
+    }
+
+    private suspend fun handleResolvedAnchor(anchor: Anchor, cloudAnchorNode: CloudAnchorNode) {
+        cloudAnchorNode.let {
+            childNodes.add(Pair(anchor.id, it))
+            addModelToAnchorNode(it, anchor)
+        }
+    }
+
+
+
+
+    /**
+     * ARSCENE CREATE ANCHORS
+     **/
+
+    fun createAnchorFromMotionEvent(motionEvent: MotionEvent):com.google.ar.core.Anchor? {
         val hitResult = frame?.hitTest(motionEvent)?.firstOrNull {
             val trackable = it.trackable
             trackable is DepthPoint || trackable is Plane || trackable is Point
@@ -112,30 +211,22 @@ class ARSceneController(
 //            }
 //        }
 
-    suspend fun createAnchorNode(anchorNode: AnchorNode,
-                                 isPositionEditable: Boolean = false, isSingleTapEnabled: Boolean = true,
-                                 isDoubleTapEnabled: Boolean = true,
-                                 anchor: Anchor? = null
-    ): AnchorNode = withContext(Dispatchers.IO){
 
 
-        val modelNode = anchor?.model.let {
-            loadModelAndCreateNode(
+
+    suspend fun addModelToAnchorNode(anchorNode: AnchorNode, anchor: Anchor){
+        viewModelScope.launch {
+            val modelNode = loadModelAndCreateNode(
                 engine,
                 anchorNode,
                 modelLoader,
-                isSingleTapEnabled = isSingleTapEnabled,
-                isDoubleTapEnabled = isDoubleTapEnabled,
-                assetModel = "eiffel_tower.glb",
+                assetModel = "khotyn_fortress.glb",
                 anchor = anchor
             )
+            anchorNode.addChildNode(modelNode)
         }
-//        setAnchorNodeEditability(anchorNode,
-//            isPositionEditable = isPositionEditable)
 
-        anchorNode.clearChildNodes()
-        anchorNode.addChildNode(modelNode)
-        return@withContext anchorNode
+
     }
 
     private suspend fun loadModelAndCreateNode(engine: Engine, anchorNode: AnchorNode, modelLoader: ModelLoader,
@@ -144,8 +235,6 @@ class ARSceneController(
     ): ModelNode {
         val modelInstance = loadModelInstance(modelLoader, assetModel)
         val modelNode = createModelNode(modelInstance, anchorNode, scale, azimuth, isSingleTapEnabled, isDoubleTapEnabled)
-
-
 
         return modelNode
     }
@@ -199,12 +288,32 @@ class ARSceneController(
 
 
 
-    fun handleCloudAnchors(anchor:Anchor) {
+    suspend fun createAnchorNode(anchorNode: AnchorNode,
+                                 isPositionEditable: Boolean = false, isSingleTapEnabled: Boolean = true,
+                                 isDoubleTapEnabled: Boolean = true,
+                                 anchor: Anchor? = null
+    ): AnchorNode = withContext(Dispatchers.IO){
 
+
+        val modelNode = anchor?.model.let {
+            loadModelAndCreateNode(
+                engine,
+                anchorNode,
+                modelLoader,
+                isSingleTapEnabled = isSingleTapEnabled,
+                isDoubleTapEnabled = isDoubleTapEnabled,
+                assetModel = "eiffel_tower.glb",
+                anchor = anchor
+            )
+        }
+//        setAnchorNodeEditability(anchorNode,
+//            isPositionEditable = isPositionEditable)
+
+        anchorNode.clearChildNodes()
+        anchorNode.addChildNode(modelNode)
+        return@withContext anchorNode
     }
 }
-
-
 
 
 //    suspend fun getModelsName(): List<String> = withContext(Dispatchers.Default){

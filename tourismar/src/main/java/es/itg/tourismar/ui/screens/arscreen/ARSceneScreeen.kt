@@ -1,26 +1,31 @@
 package es.itg.tourismar.ui.screens.arscreen
 
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.twotone.LocationOn
 import androidx.compose.material.icons.twotone.Settings
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -34,14 +39,26 @@ import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.ar.core.Config
-import com.google.ar.core.Plane
+import com.google.ar.core.Frame
+import com.google.ar.core.Session
+import com.google.ar.core.TrackingFailureReason
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.data.model.anchor.HostingState
+import es.itg.tourismar.data.model.anchor.ScanningState
+import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneController
+import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneControllerFactory
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import io.github.sceneview.ar.ARScene
-import io.github.sceneview.ar.arcore.createAnchorOrNull
-import io.github.sceneview.ar.arcore.getUpdatedPlanes
 import io.github.sceneview.ar.getDescription
+import io.github.sceneview.ar.rememberARCameraNode
+import io.github.sceneview.ar.rememberARCameraStream
+import io.github.sceneview.rememberCollisionSystem
+import io.github.sceneview.rememberEngine
+import io.github.sceneview.rememberMainLightNode
+import io.github.sceneview.rememberMaterialLoader
+import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberOnGestureListener
+import io.github.sceneview.rememberView
 import kotlinx.coroutines.launch
 
 private const val kModelFile = "models/damaged_helmet.glb"
@@ -50,7 +67,23 @@ private const val kMaxModelInstances = 10
 
 @Composable
 fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewModel: ARSceneViewModel = hiltViewModel()) {
-    val arSceneController = ARSceneControllerFactory.create(viewModel)
+
+    val trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
+    val frame by remember { mutableStateOf<Frame?>(null) }
+    val session by remember { mutableStateOf<Session?>(null) }
+    val engine = rememberEngine()
+    val modelLoader = rememberModelLoader(engine = engine)
+    val materialLoader = rememberMaterialLoader(engine)
+    val cameraNode = rememberARCameraNode(engine)
+    val cameraStream = rememberARCameraStream(materialLoader = materialLoader)
+    val view = rememberView(engine)
+    val collisionSystem = rememberCollisionSystem(view = view)
+    val context = LocalContext.current
+    val mainLightNode = rememberMainLightNode(engine = engine)
+    val arSceneController = remember {
+        ARSceneControllerFactory.create(engine,modelLoader,materialLoader,cameraNode,
+        cameraStream,view,collisionSystem,context,mainLightNode,viewModel,frame,session,trackingFailureReason )}
+
 
     Scaffold(
         floatingActionButton = {
@@ -59,26 +92,24 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewM
                 anchorRoute,
                 arSceneController
             )
-       },
-        content = { paddingValues ->
-            ARSceneScreenContent(
-                navController = navController,
-                anchorRoute = anchorRoute,
-                arSceneController = arSceneController,
-                paddingValues = paddingValues
-            )
+            FloatingActionButton(
+                onClick = {
+                    if (arSceneController.scanningState == ScanningState.READY_TO_HOST) {
+
+                        arSceneController.placedAnchor?.let {
+                                arSceneController.handleHosting(it)
+                                Toast.makeText(context, "Trying to host an anchor", Toast.LENGTH_SHORT).show()
+
+                        }
+                    } else {
+                        Toast.makeText(context, "Keep scanning the environment before hosting an anchor.", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                contentColor = if (arSceneController.scanningState == ScanningState.READY_TO_HOST) MaterialTheme.colorScheme.primary else Color.Gray
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Host Cloud Anchor")
+            }
         }
-    )
-}
-@Composable
-fun ARSceneScreenContent(navController: NavController, anchorRoute: AnchorRoute?,
-                         arSceneController: ARSceneController,paddingValues: PaddingValues
-) {
-    Surface (
-        modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize(),
-        color = Color.Black
     ) {
         ARScene(
             modifier = Modifier.fillMaxSize(),
@@ -123,58 +154,62 @@ fun ARSceneScreenContent(navController: NavController, anchorRoute: AnchorRoute?
             planeRenderer = arSceneController.planeRenderer,
             onTrackingFailureChanged = { arSceneController.trackingFailureReason = it },
             onSessionUpdated = { session, updatedFrame ->
-                arSceneController.frame = updatedFrame
-                arSceneController.session = session
-//                arSceneController.handleCloudAnchors(anchorRoute)
-                if (arSceneController.childNodes.isEmpty()) {
-                    updatedFrame.getUpdatedPlanes()
-                        .firstOrNull { it.type == Plane.Type.HORIZONTAL_UPWARD_FACING }
-                        ?.let { it.createAnchorOrNull(it.centerPose) }?.let { anchor ->
+                with(arSceneController){
+                    this.frame = updatedFrame
+                    this.session = session
+                    updateScanningState(updatedFrame)
+                    resolveCloudAnchors(anchorRoute)
+                }
+            },
+
+            onGestureListener = rememberOnGestureListener(
+                onSingleTapConfirmed = { motionEvent, node ->
+                    if (arSceneController.hostingState == HostingState.PLACING) {
+                        arSceneController.createAnchorFromMotionEvent(motionEvent)?.let { anchor ->
                             arSceneController.createAnchorNodeFromAnchor(anchor).let {
                                 arSceneController.viewModelScope.launch {
                                     with(arSceneController) {
                                         childNodes.add(Pair(null, it))
                                         createAnchorNode(anchorNode = it)
                                     }
+                                    with(arSceneController){
+                                        placedAnchor = anchor
+                                        hostingState = HostingState.READY_TO_HOST
+                                        scanningMessage = "Anchor placed. Tap the upload button to host it."
+                                    }
                                 }
                             }
                         }
-                }
-
-            },
-
-            onGestureListener = rememberOnGestureListener(
-                onSingleTapConfirmed = { motionEvent, node ->
-                   arSceneController.createAnchorFromMotionEvent(motionEvent).let { anchor ->
-                       if (anchor != null) {
-                           arSceneController.createAnchorNodeFromAnchor(anchor).let {
-                               arSceneController.viewModelScope.launch {
-                                   with(arSceneController) {
-                                       childNodes.add(Pair(null, it))
-                                       createAnchorNode(anchorNode = it)
-                                   }
-                               }
-                           }
-                       }
-
-                   }
+                    }
                 },
-
             )
         )
 
-        Text(
+        Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(it)
                 .fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            fontSize = 16.sp,
-            color = Color.White,
-            text = arSceneController.trackingFailureReason?.getDescription(LocalContext.current)
-                ?: ""
-        )
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                textAlign = TextAlign.Center,
+                fontSize = 16.sp,
+                color = Color.White,
+                text = arSceneController.trackingFailureReason?.getDescription(LocalContext.current)
+                    ?: ""
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                textAlign = TextAlign.Center,
+                fontSize = 14.sp,
+                color = Color.White,
+                text = arSceneController.scanningMessage
+            )
+        }
     }
 }
+
+
 
 @Composable
 fun ARSceneFloatingActions(navController: NavController,anchorRoute: AnchorRoute?, viewController: ARSceneController) {
