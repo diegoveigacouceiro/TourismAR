@@ -2,6 +2,8 @@ package es.itg.tourismar.ui.screens.arscreen
 
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,10 +12,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material.icons.twotone.LocationOn
 import androidx.compose.material.icons.twotone.Settings
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -21,10 +27,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,14 +52,20 @@ import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
+import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.data.model.anchor.CustomLatLng
 import es.itg.tourismar.data.model.anchor.HostingState
+import es.itg.tourismar.data.model.anchor.Pose
 import es.itg.tourismar.data.model.anchor.ScanningState
+import es.itg.tourismar.data.model.anchor.SerializableFloat3
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneController
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneControllerFactory
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
+import es.itg.tourismar.util.Resource
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.getDescription
+import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.rememberARCameraNode
 import io.github.sceneview.ar.rememberARCameraStream
 import io.github.sceneview.rememberCollisionSystem
@@ -60,6 +76,9 @@ import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private const val kModelFile = "models/damaged_helmet.glb"
 private const val kMaxModelInstances = 10
@@ -90,25 +109,9 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewM
             ARSceneFloatingActions(
                 navController = navController,
                 anchorRoute,
-                arSceneController
+                arSceneController,
+                viewModel
             )
-            FloatingActionButton(
-                onClick = {
-                    if (arSceneController.scanningState == ScanningState.READY_TO_HOST) {
-
-                        arSceneController.placedAnchor?.let {
-                                arSceneController.handleHosting(it)
-                                Toast.makeText(context, "Trying to host an anchor", Toast.LENGTH_SHORT).show()
-
-                        }
-                    } else {
-                        Toast.makeText(context, "Keep scanning the environment before hosting an anchor.", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                contentColor = if (arSceneController.scanningState == ScanningState.READY_TO_HOST) MaterialTheme.colorScheme.primary else Color.Gray
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Host Cloud Anchor")
-            }
         }
     ) {
         ARScene(
@@ -212,40 +215,87 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewM
 
 
 @Composable
-fun ARSceneFloatingActions(navController: NavController,anchorRoute: AnchorRoute?, viewController: ARSceneController) {
+fun ARSceneFloatingActions(navController: NavController, anchorRoute: AnchorRoute?, viewController: ARSceneController, viewModel: ARSceneViewModel) {
+    val showDialogProperties = remember { mutableStateOf(false) }
+    val showDialogMap = remember { mutableStateOf(false) }
+    val showDialogAnchorForm = remember { mutableStateOf(false) }
+    val cloudAnchorId = remember { mutableStateOf("") }
+
     Column {
         ARSceneFloatingActionButton(
-            onClick = {
+            onClick = { showDialogProperties.value = true },
+            content = {
                 ShowARSceneOptionsDialog(viewController)
             },
             icon = Icons.TwoTone.Settings,
+            showDialog = showDialogProperties,
             contentDescription = "Properties",
             modifier = Modifier.padding(8.dp)
         )
 
         ARSceneFloatingActionButton(
-            onClick = {
-                MapComposable(anchorRoute= anchorRoute)
+            onClick = { showDialogMap.value = true },
+            content = {
+                MapComposable(anchorRoute = anchorRoute)
             },
             icon = Icons.TwoTone.LocationOn,
+            showDialog = showDialogMap,
             contentDescription = "Map",
             modifier = Modifier.padding(8.dp)
+        )
+
+        ARSceneFloatingActionButton(
+            onClick = {
+                if (viewController.scanningState == ScanningState.READY_TO_HOST) {
+                    viewController.placedAnchor?.let {
+                        viewController.handleHosting(it,
+                            onSuccess = { anchorId ->
+                                cloudAnchorId.value = anchorId
+                                showDialogAnchorForm.value = true
+                            },
+                            onFailure = {
+                                viewController.placedAnchor?.detach()
+                                viewController.placedAnchor = null
+                            })
+                        Toast.makeText(viewController.context, "Trying to host an anchor", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(viewController.context, "Keep scanning the environment before hosting an anchor.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            content = {
+                AnchorForm(
+                    viewModel = viewModel,
+                    anchorId = cloudAnchorId.value,
+                    anchorRoute = anchorRoute!!,
+                    onSubmit = {
+                        // Handle form submission
+                    }
+                )
+            },
+            icon = Icons.TwoTone.Add,
+            showDialog = showDialogAnchorForm,
+            contentDescription = "Host Anchor",
+            modifier = Modifier.padding(8.dp),
+            containerColor = if (viewController.scanningState == ScanningState.READY_TO_HOST) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
         )
     }
 }
 
 @Composable
 fun ARSceneFloatingActionButton(
-    onClick: @Composable () -> Unit,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+    showDialog: MutableState<Boolean>,
     icon: ImageVector,
     contentDescription: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.primary
 ) {
-    val showDialog = remember { mutableStateOf(false) }
-
     FloatingActionButton(
-        onClick = { showDialog.value = true },
-        modifier = modifier
+        onClick = onClick,
+        modifier = modifier,
+        containerColor = containerColor
     ) {
         Icon(imageVector = icon, contentDescription = contentDescription)
     }
@@ -258,25 +308,142 @@ fun ARSceneFloatingActionButton(
                 dismissOnClickOutside = true,
                 securePolicy = SecureFlagPolicy.SecureOn
             )
-        ){
+        ) {
             ElevatedCard(
                 modifier = Modifier
                     .padding(16.dp)
                     .size(600.dp),
                 shape = ShapeDefaults.Medium,
-                elevation =  CardDefaults.elevatedCardElevation(),
+                elevation = CardDefaults.elevatedCardElevation(),
                 colors = CardDefaults.elevatedCardColors(),
             ) {
-                onClick()
+                content()
             }
         }
     }
 }
 
+
 @Composable
 fun ShowARSceneOptionsDialog(viewController: ARSceneController) {
     // Implementa el AlertDialog con las opciones del ARScene
 }
+
+@Composable
+fun AnchorForm(
+    viewModel: ARSceneViewModel,
+    anchorId: String,
+    anchorRoute: AnchorRoute,
+    onSubmit: (Anchor) -> Unit
+) {
+    val modelsResource by viewModel.models.collectAsState()
+    var selectedModel by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    val order = anchorRoute.anchors.size + 1
+    val serializedTime = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()) }
+    val location = CustomLatLng(
+        latitude = 37.7749, // Example latitude, replace with actual location data
+        longitude = -122.4194 // Example longitude, replace with actual location data
+    )
+    val pose = Pose(
+        rotation = SerializableFloat3(0f, 0f, 0f),
+        translation = SerializableFloat3(0f, 0f, 0f)
+    )
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(text = "Create Anchor", style = MaterialTheme.typography.bodyLarge)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "ID: $anchorId")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        when (modelsResource) {
+            is Resource.Loading -> {
+                CircularProgressIndicator()
+            }
+            is Resource.Success -> {
+                val models = (modelsResource as Resource.Success<List<String>>).data
+
+                if (models != null) {
+                    if (models.isNotEmpty()) {
+                        Box {
+                            Text(selectedModel.ifEmpty { "Select a model" }, modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { dropdownExpanded = true })
+                            DropdownMenu(
+                                expanded = dropdownExpanded,
+                                onDismissRequest = { dropdownExpanded = false },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                models.forEach { model ->
+                                    DropdownMenuItem(
+                                        text= { Text(text = model) },
+                                        onClick = {
+                                        selectedModel = model
+                                        dropdownExpanded = false
+                                    })
+                                }
+                            }
+                        }
+                    } else {
+                        Text(text = "No models available")
+                    }
+                }
+            }
+            is Resource.Error -> {
+                val errorMessage = (modelsResource as Resource.Error).message
+                Text(text = "Error: $errorMessage")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "Order: $order")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "Serialized Time: $serializedTime")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "Location: (${location.latitude}, ${location.longitude})")
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(text = "Pose: Rotation (${pose.rotation.x}, ${pose.rotation.y}, ${pose.rotation.z}), Translation (${pose.translation.x}, ${pose.translation.y}, ${pose.translation.z})")
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = {
+            val newAnchor = Anchor(
+                id = anchorId,
+                model = selectedModel,
+                name = name,
+                order = order,
+                serializedTime = serializedTime,
+                location = location,
+                pose = pose,
+                apiLink = ""
+            )
+            onSubmit(newAnchor)
+        }) {
+            Text("Submit")
+        }
+    }
+}
+
 
 
 

@@ -89,7 +89,7 @@ class StorageRepositoryImpl @Inject constructor(
         return flow {
             emit(Resource.Loading())
 
-            val listResult = storage.reference.listAll().await()
+            val listResult = storage.reference.child(MODELS_PATH).listAll().await()
             val fileNames = listResult.items.map { it.name }
             emit(Resource.Success(fileNames))
         }.catch { e ->

@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.google.android.filament.Engine
 import com.google.android.filament.View
 import com.google.ar.core.DepthPoint
@@ -53,7 +54,7 @@ class ARSceneController(
     val cameraStream: ARCameraStream,
     var view: View,
     val collisionSystem: CollisionSystem,
-    private val context: Context,
+    val context: Context,
     val mainLightNode: LightNode,
     val arSceneViewModel: ARSceneViewModel,
     var frame: Frame?,
@@ -69,7 +70,7 @@ class ARSceneController(
     var scanningMessage by mutableStateOf("Move your device around to scan the environment.")
     var hostingState by  mutableStateOf(HostingState.PLACING)
     var placedAnchor by mutableStateOf<com.google.ar.core.Anchor?>(null)
-    var resolvedAnchors by mutableStateOf(mutableMapOf<String, Pair<Anchor, Boolean>>())
+    var resolvedAnchors = SnapshotStateMap<String, Pair<Anchor, Boolean>>()
 
 
 
@@ -78,16 +79,19 @@ class ARSceneController(
      * ARSCENE HOSTING FUNCTIONS
      **/
 
-    fun handleHosting(anchor: com.google.ar.core.Anchor) {
+    fun handleHosting(anchor: com.google.ar.core.Anchor, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         hostingState = HostingState.HOSTING
         hostCloudAnchor(anchor,
             onSuccess = { cloudAnchorId ->
                 Log.d("ARSceneScreen", "Successfully hosted cloud anchor with ID: $cloudAnchorId")
                 hostingState = HostingState.PLACING
+                onSuccess(cloudAnchorId)
             },
             onFailure = { exception ->
                 Log.e("ARSceneScreen", "Failed to host cloud anchor", exception)
                 Toast.makeText(context, "Failed to host cloud anchor.", Toast.LENGTH_SHORT).show()
+                hostingState = HostingState.PLACING
+                onFailure(Exception(exception))
             }
         )
     }

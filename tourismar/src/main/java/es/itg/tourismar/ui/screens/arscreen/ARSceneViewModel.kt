@@ -15,7 +15,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
 import es.itg.tourismar.data.repository.storageRepository.ModelData
 import es.itg.tourismar.data.repository.storageRepository.StorageRepository
-
+import es.itg.tourismar.util.Resource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 
 import java.nio.Buffer
@@ -26,6 +33,12 @@ class ARSceneViewModel @Inject constructor(
     private val anchorRepository: AnchorRepository,
     private val storageRepository: StorageRepository
 ) : ViewModel() {
+    private val _models = MutableStateFlow<Resource<List<String>>>(Resource.Loading())
+    val models: StateFlow<Resource<List<String>>> get() = _models
+
+    init {
+        fetchModels()
+    }
 
 
 
@@ -35,6 +48,24 @@ class ARSceneViewModel @Inject constructor(
         } catch (e: Exception) {
             Log.e("ViewModel", "Error al cargar el modelo: ${e.message}")
             null
+        }
+    }
+
+    private fun fetchModels() {
+        viewModelScope.launch {
+            storageRepository.getFileNames().collect { resource ->
+                when (resource) {
+                    is Resource.Success -> _models.value = resource
+                    is Resource.Error -> {
+                        _models.value = Resource.Error(resource.message!!)
+                        Log.e("Firebase", "Error fetching models: ${resource.message}")
+                    }
+                    is Resource.Loading -> {
+                        _models.value = Resource.Loading()
+                        Log.d("Firebase", "Loading models from storage...")
+                    }
+                }
+            }
         }
     }
 
