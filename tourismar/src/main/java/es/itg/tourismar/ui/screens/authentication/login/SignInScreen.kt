@@ -75,7 +75,12 @@ fun SignInScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = {
+                    Text(
+                        text = "Email",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                        },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
@@ -88,7 +93,12 @@ fun SignInScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = {
+                    Text(
+                        text = "Password",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(

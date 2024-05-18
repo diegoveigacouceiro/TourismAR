@@ -1,17 +1,20 @@
 package es.itg.tourismar.ui.screens.arscreen
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
 import dagger.hilt.android.lifecycle.HiltViewModel
+import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
 import es.itg.tourismar.data.repository.storageRepository.ModelData
 import es.itg.tourismar.data.repository.storageRepository.StorageRepository
@@ -65,6 +68,19 @@ class ARSceneViewModel @Inject constructor(
                         Log.d("Firebase", "Loading models from storage...")
                     }
                 }
+            }
+        }
+    }
+
+    fun updateAnchorRoute(anchorRoute: AnchorRoute, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit){
+        viewModelScope.launch {
+            anchorRepository.updateAnchorRoute(anchorRoute).collect{ resource ->
+                when(resource){
+                    is Resource.Success -> onSuccess("AnchorRoute updated: ${resource.message}")
+                    is Resource.Error -> onFailure(Exception(resource.message))
+                    is Resource.Loading -> Log.d("Firebase","Updating anchorRoute")
+                }
+
             }
         }
     }

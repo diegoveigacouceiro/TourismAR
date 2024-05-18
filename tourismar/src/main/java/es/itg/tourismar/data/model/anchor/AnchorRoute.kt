@@ -11,12 +11,20 @@ import kotlinx.parcelize.Parcelize
 data class AnchorRoute(
     val id: String,
     val anchorRouteName: String,
-    val anchors: List<Anchor>,
+    var anchors: List<Anchor>,
     val imageUrl: String,
     val description: String
 ): Parcelable{
 
     constructor() : this("","", emptyList(), "", "")
+    fun toPartialMap(): Map<String, Any?> {
+        return mapOf(
+            "anchorRouteName" to anchorRouteName,
+            "imageUrl" to imageUrl,
+            "description" to description,
+            "anchors" to anchors.map { it.toMap() }
+        )
+    }
 
 
     fun getAnchorLocations(): List<MapMarkerItem> {
@@ -30,3 +38,5 @@ data class AnchorRoute(
     }
 
 }
+
+

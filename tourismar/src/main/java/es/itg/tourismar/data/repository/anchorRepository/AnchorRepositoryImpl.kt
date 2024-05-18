@@ -49,7 +49,6 @@ class AnchorRepositoryImpl @Inject constructor(
             val listener = firestore.collection("anchorRoutes")
                 .addSnapshotListener { snapshot, exception ->
                     if (exception != null) {
-                        // Manejar errores
                         trySend(Resource.Error(exception.message ?: "An error occurred"))
                         return@addSnapshotListener
                     }
@@ -82,7 +81,7 @@ class AnchorRepositoryImpl @Inject constructor(
     override fun updateAnchorRoute(anchorRoute: AnchorRoute): Flow<Resource<Unit>> {
         return flow {
             emit(Resource.Loading())
-            firestore.collection("anchorRoutes").document(anchorRoute.id).set(anchorRoute).await()
+            firestore.collection("anchorRoutes").document(anchorRoute.id).update(anchorRoute.toPartialMap()).await()
             emit(Resource.Success(Unit))
         }.catch {
             emit(Resource.Error(it.message.toString()))

@@ -29,33 +29,72 @@ data class Anchor(
     val location: CustomLatLng,
     val pose: Pose,
     val apiLink: String
-) : Parcelable{
+) : Parcelable {
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "id" to id,
+            "model" to model,
+            "name" to name,
+            "order" to order,
+            "serializedTime" to serializedTime,
+            "location" to location.toMap(),
+            "pose" to pose.toMap(),
+            "apiLink" to apiLink
+        )
+    }
+
     constructor() : this("", "", "", 0, "", CustomLatLng(0.0, 0.0), Pose(), "")
 }
+    @Parcelize
+    data class CustomLatLng(
+        val latitude: Double,
+        val longitude: Double
+    ) : Parcelable{
+        fun toMap(): Map<String, Any?> {
+            return mapOf(
+                "latitude" to latitude,
+                "longitude" to longitude
+            )
+        }
 
-@Parcelize
-data class CustomLatLng(
-    val latitude: Double,
-    val longitude: Double
-) : Parcelable{
-    constructor() : this(0.0, 0.0)
-}
+        constructor() : this(0.0, 0.0)
+    }
 
-@Parcelize
-data class SerializableFloat3(
-    val x: Float,
-    val y: Float,
-    val z: Float
-) : Parcelable{
-    constructor() : this(0f, 0f, 0f)
-}
+    @Parcelize
+    data class SerializableFloat3(
+        val x: Float,
+        val y: Float,
+        val z: Float
+    ) : Parcelable{
+        constructor() : this(0f, 0f, 0f)
+        fun toMap(): Map<String, Any?> {
+            return mapOf(
+                "x" to x,
+                "y" to y,
+                "z" to z
+            )
+        }
+    }
 
-@Parcelize
-data class Pose(
-    var rotation: SerializableFloat3,
-    var translation: SerializableFloat3
-) : Parcelable{
-    constructor() : this(SerializableFloat3(), SerializableFloat3())
-}
+    @Parcelize
+    data class Pose(
+        var rotation: SerializableFloat3,
+        var translation: SerializableFloat3
+    ) : Parcelable{
+        fun toMap(): Map<String, Any?> {
+            return mapOf(
+                "rotation" to rotation.toMap(),
+                "translation" to translation.toMap()
+            )
+        }
+
+        constructor() : this(SerializableFloat3(), SerializableFloat3())
+    }
+
+
+
+
+
+
 
 

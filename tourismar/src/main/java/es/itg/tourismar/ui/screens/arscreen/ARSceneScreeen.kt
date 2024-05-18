@@ -1,8 +1,14 @@
 package es.itg.tourismar.ui.screens.arscreen
 
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,12 +17,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material.icons.twotone.LocationOn
 import androidx.compose.material.icons.twotone.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -24,11 +35,14 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,17 +51,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
+import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
@@ -65,7 +89,6 @@ import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import es.itg.tourismar.util.Resource
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.getDescription
-import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.rememberARCameraNode
 import io.github.sceneview.ar.rememberARCameraStream
 import io.github.sceneview.rememberCollisionSystem
@@ -76,12 +99,10 @@ import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private const val kModelFile = "models/damaged_helmet.glb"
-private const val kMaxModelInstances = 10
 
 
 @Composable
@@ -102,7 +123,6 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewM
     val arSceneController = remember {
         ARSceneControllerFactory.create(engine,modelLoader,materialLoader,cameraNode,
         cameraStream,view,collisionSystem,context,mainLightNode,viewModel,frame,session,trackingFailureReason )}
-
 
     Scaffold(
         floatingActionButton = {
@@ -268,8 +288,17 @@ fun ARSceneFloatingActions(navController: NavController, anchorRoute: AnchorRout
                     viewModel = viewModel,
                     anchorId = cloudAnchorId.value,
                     anchorRoute = anchorRoute!!,
+                    viewController = viewController,
                     onSubmit = {
-                        // Handle form submission
+                        anchorRoute.anchors+=it
+                        viewModel.updateAnchorRoute(anchorRoute,
+                            onSuccess = {
+                                Toast.makeText(viewController.context,it,Toast.LENGTH_SHORT).show()
+                            },
+                            onFailure = {
+                                Toast.makeText(viewController.context,it.message,Toast.LENGTH_SHORT).show()
+
+                            })
                     }
                 )
             },
@@ -326,7 +355,54 @@ fun ARSceneFloatingActionButton(
 
 @Composable
 fun ShowARSceneOptionsDialog(viewController: ARSceneController) {
-    // Implementa el AlertDialog con las opciones del ARScene
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "Hello, Jetpack Compose!",
+            fontSize = 20.sp,
+            color = Color.Blue,
+            fontWeight = FontWeight.Bold,
+            fontStyle = FontStyle.Italic,
+            textDecoration = TextDecoration.Underline,
+            letterSpacing = 2.sp
+        )
+        Text(
+            text = "Hello, Jetpack Compose!",
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.primary
+            )
+        )
+        Text(
+            text = "Hello, Jetpack Compose!",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.Green,
+            style = TextStyle(
+                background = Color.LightGray,
+                shadow = Shadow(
+                    color = Color.Black,
+                    offset = Offset(2f, 2f),
+                    blurRadius = 4f
+                )
+            )
+        )
+        Text(
+            text = "Center aligned text",
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = "Scalable Text",
+            fontSize = 20.sp,
+            modifier = Modifier.fillMaxWidth(),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
 }
 
 @Composable
@@ -334,6 +410,7 @@ fun AnchorForm(
     viewModel: ARSceneViewModel,
     anchorId: String,
     anchorRoute: AnchorRoute,
+    viewController: ARSceneController,
     onSubmit: (Anchor) -> Unit
 ) {
     val modelsResource by viewModel.models.collectAsState()
@@ -342,105 +419,180 @@ fun AnchorForm(
     var dropdownExpanded by remember { mutableStateOf(false) }
     val order = anchorRoute.anchors.size + 1
     val serializedTime = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()) }
-    val location = CustomLatLng(
-        latitude = 37.7749, // Example latitude, replace with actual location data
-        longitude = -122.4194 // Example longitude, replace with actual location data
-    )
+    var location by remember { mutableStateOf(CustomLatLng(0.0, 0.0)) }
+
+    LaunchedEffect(Unit) {
+        location = getLocation(viewController.context)
+    }
     val pose = Pose(
         rotation = SerializableFloat3(0f, 0f, 0f),
         translation = SerializableFloat3(0f, 0f, 0f)
     )
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(text = "Create Anchor", style = MaterialTheme.typography.bodyLarge)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(text = "ID: $anchorId")
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        when (modelsResource) {
-            is Resource.Loading -> {
-                CircularProgressIndicator()
-            }
-            is Resource.Success -> {
-                val models = (modelsResource as Resource.Success<List<String>>).data
-
-                if (models != null) {
-                    if (models.isNotEmpty()) {
-                        Box {
-                            Text(selectedModel.ifEmpty { "Select a model" }, modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { dropdownExpanded = true })
-                            DropdownMenu(
-                                expanded = dropdownExpanded,
-                                onDismissRequest = { dropdownExpanded = false },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                models.forEach { model ->
-                                    DropdownMenuItem(
-                                        text= { Text(text = model) },
-                                        onClick = {
-                                        selectedModel = model
-                                        dropdownExpanded = false
-                                    })
-                                }
-                            }
-                        }
-                    } else {
-                        Text(text = "No models available")
-                    }
-                }
-            }
-            is Resource.Error -> {
-                val errorMessage = (modelsResource as Resource.Error).message
-                Text(text = "Error: $errorMessage")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Name") },
-            modifier = Modifier.fillMaxWidth()
+    Column(modifier = Modifier
+        .padding(16.dp)
+        .fillMaxWidth()
+        .verticalScroll(rememberScrollState())) {
+        Text(text = "Create Anchor",
+            style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.primary),
+            modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = "Anchor ID: $anchorId")
 
-        Text(text = "Order: $order")
+                Spacer(modifier = Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
+                when (modelsResource) {
+                    is Resource.Loading -> {
+                        CircularProgressIndicator()
+                    }
+                    is Resource.Success -> {
+                        val models = (modelsResource as Resource.Success<List<String>>).data
 
-        Text(text = "Serialized Time: $serializedTime")
+                        if (!models.isNullOrEmpty()) {
+                            Box {
+                                Text(
+                                    selectedModel.ifEmpty { "Select a model" },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { dropdownExpanded = true }
+                                        .padding(8.dp)
+                                        .background(
+                                            Color.LightGray,
+                                            shape = RoundedCornerShape(4.dp)
+                                        )
+                                )
+                                DropdownMenu(
+                                    expanded = dropdownExpanded,
+                                    onDismissRequest = { dropdownExpanded = false },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    models.forEach { model ->
+                                        DropdownMenuItem(
+                                            text = { Text(text = model) },
+                                            onClick = {
+                                                selectedModel = model
+                                                dropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text(text = "No models available")
+                        }
+                    }
+                    is Resource.Error -> {
+                        val errorMessage = (modelsResource as Resource.Error).message
+                        Text(text = "Error: $errorMessage")
+                    }
+                }
 
-        Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = {
+                        Text(
+                            text = "Name",
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
+                        focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
 
-        Text(text = "Location: (${location.latitude}, ${location.longitude})")
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Order: $order",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
-        Text(text = "Pose: Rotation (${pose.rotation.x}, ${pose.rotation.y}, ${pose.rotation.z}), Translation (${pose.translation.x}, ${pose.translation.y}, ${pose.translation.z})")
+                Spacer(modifier = Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Serialized Time: $serializedTime",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
 
-        Button(onClick = {
-            val newAnchor = Anchor(
-                id = anchorId,
-                model = selectedModel,
-                name = name,
-                order = order,
-                serializedTime = serializedTime,
-                location = location,
-                pose = pose,
-                apiLink = ""
-            )
-            onSubmit(newAnchor)
-        }) {
-            Text("Submit")
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Location: (${location.latitude}, ${location.longitude})",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Pose: Rotation (${pose.rotation.x}, ${pose.rotation.y}, ${pose.rotation.z}), Translation (${pose.translation.x}, ${pose.translation.y}, ${pose.translation.z})",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(onClick = {
+                    val newAnchor = Anchor(
+                        id = anchorId,
+                        model = selectedModel,
+                        name = name,
+                        order = order,
+                        serializedTime = serializedTime,
+                        location = location,
+                        pose = pose,
+                        apiLink = ""
+                    )
+                    onSubmit(newAnchor)
+                }) {
+                    Text("Submit")
+                }
+            }
         }
+    }
+}
+
+
+private suspend fun getLocation(context: Context): CustomLatLng {
+    val fusedLocationClient: FusedLocationProviderClient =
+        LocationServices.getFusedLocationProviderClient(context)
+    val location: Location? = try {
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            fusedLocationClient.lastLocation.await()
+        } else {
+            null
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    return if (location != null) {
+        CustomLatLng(location.latitude, location.longitude)
+    } else {
+        CustomLatLng(0.0, 0.0)
     }
 }
 

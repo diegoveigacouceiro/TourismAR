@@ -224,7 +224,7 @@ class ARSceneController(
                 engine,
                 anchorNode,
                 modelLoader,
-                assetModel = "khotyn_fortress.glb",
+                assetModel = anchor.model,
                 anchor = anchor
             )
             anchorNode.addChildNode(modelNode)
