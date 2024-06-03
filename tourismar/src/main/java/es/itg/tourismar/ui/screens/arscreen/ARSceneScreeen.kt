@@ -107,7 +107,6 @@ import java.util.Locale
 
 @Composable
 fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewModel: ARSceneViewModel = hiltViewModel()) {
-
     val trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
     val frame by remember { mutableStateOf<Frame?>(null) }
     val session by remember { mutableStateOf<Session?>(null) }

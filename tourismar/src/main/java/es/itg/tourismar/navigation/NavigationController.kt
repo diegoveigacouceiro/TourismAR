@@ -8,17 +8,17 @@ import com.google.firebase.auth.FirebaseAuth
 import es.itg.tourismar.MyApp2
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.ui.screens.arscreen.ARSceneScreen
-import es.itg.tourismar.ui.screens.SettingsScreen
 import es.itg.tourismar.ui.screens.authentication.login.SignInScreen
 import es.itg.tourismar.ui.screens.authentication.signup.SignUpScreen
 import es.itg.tourismar.ui.screens.home.HomeScreen
+import es.itg.tourismar.ui.screens.markerScreen.MarkerScreen
 
 @Composable
 fun NavigationController() {
     val navController = rememberNavController()
     val screens = listOf(
         Screens.Home,
-        Screens.Settings,
+        Screens.MarkerScreen,
         Screens.ARScene,
         Screens.SignIn,
         Screens.SignUp
@@ -34,9 +34,9 @@ fun NavigationController() {
 
                     }
                 }
-                is Screens.Settings -> {
+                is Screens.MarkerScreen -> {
                     composable(route = screen.route) {
-                        SettingsScreen()
+                        MarkerScreen(navController)
                         MyApp2(navController, onLogout = {FirebaseAuth.getInstance().signOut()}, currentScreen = screen)
                     }
                 }

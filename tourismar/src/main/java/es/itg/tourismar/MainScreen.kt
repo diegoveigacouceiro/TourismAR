@@ -42,9 +42,9 @@ import es.itg.tourismar.navigation.NavigationItem
 import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.arscreen.ARSceneScreen
 import es.itg.tourismar.ui.screens.home.HomeScreen
-import es.itg.tourismar.ui.screens.SettingsScreen
 import es.itg.tourismar.ui.screens.authentication.login.SignInScreen
 import es.itg.tourismar.ui.screens.authentication.signup.SignUpScreen
+import es.itg.tourismar.ui.screens.markerScreen.MarkerScreen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -54,7 +54,7 @@ fun MyApp(
 
     val screens = listOf(
         Screens.Home,
-        Screens.Settings,
+        Screens.MarkerScreen,
         Screens.ARScene,
         Screens.SignIn,
         Screens.SignUp
@@ -153,8 +153,8 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
                                 icon = { Icon(Icons.Filled.Home, contentDescription = null) },
                             )
                             NavigationBarItem(
-                                selected = navController.currentDestination?.route == Screens.Settings.route,
-                                onClick = { navController.navigate(Screens.Settings.route) },
+                                selected = navController.currentDestination?.route == Screens.MarkerScreen.route,
+                                onClick = { navController.navigate(Screens.MarkerScreen.route) },
                                 icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                             )
                             NavigationBarItem(
@@ -170,7 +170,7 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
                 it
                 when (currentScreen) {
                     is Screens.Home -> HomeScreen(navController,Modifier)
-                    is Screens.Settings -> SettingsScreen()
+                    is Screens.MarkerScreen -> MarkerScreen(navController)
                     is Screens.ARScene -> ARSceneScreen(navController,null)
                     is Screens.SignIn -> SignInScreen(navController)
                     is Screens.SignUp -> SignUpScreen(navController)

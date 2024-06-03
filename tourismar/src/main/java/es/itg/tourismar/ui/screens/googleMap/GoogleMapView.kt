@@ -26,12 +26,17 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.data.model.marker.MarkerRoute
 import kotlin.math.pow
 import kotlin.math.sqrt
 
 
 @Composable
-fun MapComposable(modifier: Modifier = Modifier, anchorRoute: AnchorRoute?) {
+fun MapComposable(
+    modifier: Modifier = Modifier,
+    anchorRoute: AnchorRoute? = null,
+    markerRoute: MarkerRoute? = null
+) {
     val context = LocalContext.current
     val mapsConfiguration = remember { MapsConfiguration() }
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
@@ -71,8 +76,20 @@ fun MapComposable(modifier: Modifier = Modifier, anchorRoute: AnchorRoute?) {
 
     val markersToRender = remember { mutableStateListOf<MapMarkerItem>() }
 
-    anchorRoute?.getAnchorLocations()?.forEach{
-        markersToRender.add(it)
+    // Clear previous markers to avoid duplication
+    markersToRender.clear()
+
+    // Add markers based on the provided route
+    anchorRoute?.let {
+        it.getAnchorLocations().forEach { location ->
+            markersToRender.add(location)
+        }
+    }
+
+    markerRoute?.let {
+        it.getMarkerLocations().forEach { location ->
+            markersToRender.add(location)
+        }
     }
 
     GoogleMap(
@@ -83,6 +100,7 @@ fun MapComposable(modifier: Modifier = Modifier, anchorRoute: AnchorRoute?) {
         RenderMarkers(markersToRender, cameraPositionState)
     }
 }
+
 
 @Composable
 private fun RenderMarkers(markers: List<MapMarkerItem>, cameraPositionState: CameraPositionState) {
