@@ -12,16 +12,21 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.google.android.filament.Engine
 import com.google.android.filament.View
 import com.google.ar.core.DepthPoint
+import com.google.ar.core.Earth
 import com.google.ar.core.Frame
 import com.google.ar.core.Point
 import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
 import com.google.ar.core.TrackingState
+import dev.romainguy.kotlin.math.Float3
 import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.data.model.anchor.CustomLatLng
 import es.itg.tourismar.data.model.anchor.HostingState
 import es.itg.tourismar.data.model.anchor.ScanningState
+import es.itg.tourismar.data.model.marker.Marker
+import es.itg.tourismar.data.model.marker.MarkerRoute
 import es.itg.tourismar.ui.screens.arscreen.ARSceneViewModel
 import io.github.sceneview.ar.camera.ARCameraStream
 import io.github.sceneview.ar.node.ARCameraNode
@@ -44,6 +49,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import hilt_aggregated_deps._dagger_hilt_android_internal_lifecycle_HiltViewModelFactory_ViewModelFactoriesEntryPoint
 
 
 class ARSceneController(
@@ -71,6 +78,8 @@ class ARSceneController(
     var hostingState by  mutableStateOf(HostingState.PLACING)
     var placedAnchor by mutableStateOf<com.google.ar.core.Anchor?>(null)
     var resolvedAnchors = SnapshotStateMap<String, Pair<Anchor, Boolean>>()
+    var resolvedMarkers = SnapshotStateMap<CustomLatLng, Pair<Marker, Boolean>>()
+
 
 
 
@@ -153,6 +162,60 @@ class ARSceneController(
         }
     }
 
+
+    fun resolveEarthAnchor(earth: Earth, markerRoute: MarkerRoute?) {
+        if(earth.trackingState ==TrackingState.TRACKING){
+            markerRoute?.markers?.forEach { marker ->
+                if (!resolvedMarkers.containsKey(marker.location)) {
+                    resolvedMarkers[marker.location] = Pair(marker, false)
+                    resolveEarthAnchorByLocation(
+                        earth,
+                        marker.location,
+                        marker.altitude,
+                        onSuccess = { earthAnchorNode ->
+                            viewModelScope.launch(Dispatchers.IO) {
+                                handleResolvedMarker(marker, earthAnchorNode)
+                                resolvedMarkers[marker.location] = Pair(marker, true)
+                            }
+                        },
+                        onFailure = { exception ->
+                            earth.createAnchor(
+                                marker.location.latitude,
+                                marker.location.longitude,
+                                marker.altitude,
+                                0f,0f,0f,0f
+                            ).let {
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    handleResolvedMarker(marker, it)
+                                    resolvedMarkers[marker.location] = Pair(marker, true)
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun resolveEarthAnchorByLocation(earth: Earth, customLatLng: CustomLatLng, altitude: Double, onSuccess: (com.google.ar.core.Anchor) -> Unit, onFailure: (Exception) -> Unit) {
+        earth.resolveAnchorOnTerrainAsync(
+            customLatLng.latitude,
+            customLatLng.longitude,
+            0.0,0.0f,0.0f,0.0f,0.0f){ anchor,state ->
+            when (state) {
+                com.google.ar.core.Anchor.TerrainAnchorState.SUCCESS -> {
+                    Log.d("EarthAnchor", "Terrain anchor resolved successfully")
+                    onSuccess(anchor)
+                }
+                else -> {
+                    Log.d("EarthAnchor", "Terrain anchor state: $state")
+                    onFailure(Exception("Failed to resolve EarthAnchor, state: ${state.name}"))
+                }
+            }
+        }
+    }
+
+
     private suspend fun handleResolvedAnchor(anchor: Anchor, cloudAnchorNode: CloudAnchorNode) {
         cloudAnchorNode.let {
             childNodes.add(Pair(anchor.id, it))
@@ -160,13 +223,22 @@ class ARSceneController(
         }
     }
 
+    private suspend fun handleResolvedMarker(marker: Marker, anchor: com.google.ar.core.Anchor?) {
+        anchor.let {
+            if (it != null) {
+                createAnchorNodeFromAnchor(it).let {
+                    childNodes.add(Pair(marker.name,it))
+                    addModelToAnchorNode(it,marker)
+                }
 
+            }
+        }
+    }
 
 
     /**
      * ARSCENE CREATE ANCHORS
      **/
-
     fun createAnchorFromMotionEvent(motionEvent: MotionEvent):com.google.ar.core.Anchor? {
         val hitResult = frame?.hitTest(motionEvent)?.firstOrNull {
             val trackable = it.trackable
@@ -194,28 +266,6 @@ class ARSceneController(
     }
 
 
-//    fun resolveCloudAnchor(anchor: Anchor):ResolveCloudAnchorFuture{
-//        return CloudAnchorNode.resolve(
-//                engine = engine,
-//                session = session!!,
-//                cloudAnchorId = anchor.id
-//            ) { state, node ->
-//                if (!state.isError && node != null) {
-//                    createAnchorNode(
-//                        engine = engine,
-//                        modelLoader = modelLoader,
-//                        anchorNode = node,
-//                        isSingleTapEnabled = false,
-//                        isDoubleTapEnabled = false,
-//                        isPositionEditable = false,
-//                        anchor = anchor
-//                    )
-//
-//                }
-//            }
-//        }
-
-
 
 
     suspend fun addModelToAnchorNode(anchorNode: AnchorNode, anchor: Anchor){
@@ -233,6 +283,19 @@ class ARSceneController(
 
     }
 
+    suspend fun addModelToAnchorNode(anchorNode: AnchorNode, marker: Marker){
+        viewModelScope.launch(Dispatchers.IO) {
+            val modelNode = loadModelAndCreateNode(
+                engine,
+                anchorNode,
+                modelLoader,
+                assetModel = marker.model
+            )
+            anchorNode.addChildNode(modelNode)
+        }
+
+
+    }
     private suspend fun loadModelAndCreateNode(engine: Engine, anchorNode: AnchorNode, modelLoader: ModelLoader,
                                                scale: Float = 1.5f, azimuth: Rotation = Rotation(0f, 0f, 0f), isSingleTapEnabled: Boolean = true,
                                                isDoubleTapEnabled: Boolean = true, assetModel: String, anchor: Anchor? = null

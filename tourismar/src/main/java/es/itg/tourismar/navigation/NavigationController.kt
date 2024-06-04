@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.google.firebase.auth.FirebaseAuth
 import es.itg.tourismar.MyApp2
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.data.model.marker.MarkerRoute
 import es.itg.tourismar.ui.screens.arscreen.ARSceneScreen
 import es.itg.tourismar.ui.screens.authentication.login.SignInScreen
 import es.itg.tourismar.ui.screens.authentication.signup.SignUpScreen
@@ -43,7 +44,8 @@ fun NavigationController() {
                 is Screens.ARScene -> {
                     composable(route = screen.route) {
                         val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.get("anchorRoute")
-                        ARSceneScreen(navController, anchorRoute = anchorRoute)
+                        val markerRoute: MarkerRoute? = navController.previousBackStackEntry?.savedStateHandle?.get("markerRoute")
+                        ARSceneScreen(navController, anchorRoute = anchorRoute, markerRoute = markerRoute)
                     }
 
 

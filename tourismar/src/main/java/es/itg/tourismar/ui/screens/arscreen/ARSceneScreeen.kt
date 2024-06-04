@@ -76,6 +76,7 @@ import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingFailureReason
+import com.google.ar.core.TrackingState
 import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.data.model.anchor.CustomLatLng
@@ -83,6 +84,7 @@ import es.itg.tourismar.data.model.anchor.HostingState
 import es.itg.tourismar.data.model.anchor.Pose
 import es.itg.tourismar.data.model.anchor.ScanningState
 import es.itg.tourismar.data.model.anchor.SerializableFloat3
+import es.itg.tourismar.data.model.marker.MarkerRoute
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneController
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneControllerFactory
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
@@ -106,7 +108,7 @@ import java.util.Locale
 
 
 @Composable
-fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewModel: ARSceneViewModel = hiltViewModel()) {
+fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, markerRoute: MarkerRoute?, viewModel: ARSceneViewModel = hiltViewModel()) {
     val trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
     val frame by remember { mutableStateOf<Frame?>(null) }
     val session by remember { mutableStateOf<Session?>(null) }
@@ -132,7 +134,7 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewM
                 viewModel
             )
         }
-    ) {
+    ) { it ->
         ARScene(
             modifier = Modifier.fillMaxSize(),
             childNodes = arSceneController.childNodes.map { it.second },
@@ -170,6 +172,7 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewM
                 config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL
                 //config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
                 arSceneController.cameraNode.focalLength = 50.0
+                arSceneController.cameraNode.far = 500f
             },
             cameraNode = arSceneController.cameraNode,
             cameraStream = arSceneController.cameraStream,
@@ -181,6 +184,10 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, viewM
                     this.session = session
                     updateScanningState(updatedFrame)
                     resolveCloudAnchors(anchorRoute)
+                    val earth = session.earth ?: return@ARScene
+                    if (earth.trackingState == TrackingState.TRACKING){
+                        resolveEarthAnchor(earth,markerRoute)
+                    }
                 }
             },
 

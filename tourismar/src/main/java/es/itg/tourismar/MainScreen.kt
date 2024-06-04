@@ -171,7 +171,7 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
                 when (currentScreen) {
                     is Screens.Home -> HomeScreen(navController,Modifier)
                     is Screens.MarkerScreen -> MarkerScreen(navController)
-                    is Screens.ARScene -> ARSceneScreen(navController,null)
+                    is Screens.ARScene -> ARSceneScreen(navController,null,null)
                     is Screens.SignIn -> SignInScreen(navController)
                     is Screens.SignUp -> SignUpScreen(navController)
                     null -> TODO()
