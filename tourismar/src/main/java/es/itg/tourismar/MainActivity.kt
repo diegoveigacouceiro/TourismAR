@@ -17,8 +17,6 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = true,
 
             ) {
-//                MyAppWithBackHandler()
-//
                 NavigationController()
             }
         }

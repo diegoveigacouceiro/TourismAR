@@ -325,7 +325,7 @@ class ARSceneController(
             },
             centerOrigin = Position(x = 0f, y = 0f, z = 0f),
             autoAnimate = true,
-            scaleToUnits = scale
+            //scaleToUnits = scale
         )
 
     }

@@ -6,4 +6,7 @@ sealed class Screens(val route: String) {
     object ARScene : Screens("arScene")
     object SignIn : Screens("sign in")
     object SignUp : Screens("sign up")
+    object RoutesManagement : Screens("routesManagement")
+
+    object EditAnchorRoute : Screens("editAnchorRoute")
 }

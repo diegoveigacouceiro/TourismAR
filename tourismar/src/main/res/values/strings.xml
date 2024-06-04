@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">TourismAR</string>
+    <string name="ar_scene">ARScene</string>
+    <string name="add_route">Añadir ruta</string>
+    <string name="existing_routes">Rutas Creadas</string>
+    <string name="route_name">Nome da ruta</string>
+    <string name="route_description">Descrición</string>
+    <string name="save">Gardar</string>
+    <string name="delete_route_confirmation">Borrar a Ruta</string>
+    <string name="delete_route_message">Borrar a ruta</string>
+    <string name="delete">Borrar</string>
+    <string name="cancel">Voltar</string>
+    <string name="create">Crear ruta</string>
+    <string name="create_new_route">Nova ruta</string>
 </resources>
