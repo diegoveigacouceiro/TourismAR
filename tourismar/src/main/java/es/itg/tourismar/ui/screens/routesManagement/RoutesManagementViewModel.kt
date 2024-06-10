@@ -24,16 +24,24 @@ class RoutesManagementViewModel @Inject constructor(
     private val _anchorRoutes = MutableLiveData<List<AnchorRoute>?>()
     val anchorRoutes: LiveData<List<AnchorRoute>?> get() = _anchorRoutes
 
+    private val _selectedRoute = MutableLiveData<AnchorRoute?>()
+    val selectedRoute: MutableLiveData<AnchorRoute?> get() = _selectedRoute
+
     init {
         viewModelScope.launch {
             repository.observeAnchorRoutes().collect { resource ->
                 when (resource) {
                     is Resource.Success -> _anchorRoutes.value = resource.data
-                    is Resource.Error -> Log.e("HomeViewModel", "Error observing anchor routes: ${resource.message}")
-                    is Resource.Loading -> Log.d("HomeViewModel", "Loading observing anchor routes...")
+                    is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel", "Loading observing anchor routes...")
                 }
             }
         }
+    }
+
+    fun setSelectedRoute(anchorRoute: AnchorRoute) {
+        _selectedRoute.value = anchorRoute
+
     }
 
     fun getAnchorRoute(routeId: String): AnchorRoute? {
@@ -42,8 +50,8 @@ class RoutesManagementViewModel @Inject constructor(
             repository.readAnchorRouteById(routeId).collect{ resource ->
                 when (resource) {
                     is Resource.Success -> anchorRoute = resource.data
-                    is Resource.Error -> Log.e("HomeViewModel", "Error observing anchor routes: ${resource.message}")
-                    is Resource.Loading -> Log.d("HomeViewModel", "Loading observing anchor routes...")
+                    is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel", "Loading observing anchor routes...")
                 }
             }
         }
@@ -52,11 +60,40 @@ class RoutesManagementViewModel @Inject constructor(
 
 
 
-    fun updateAnchorRoute(copy: AnchorRoute) {
+    fun updateAnchorRoute(anchorRoute: AnchorRoute) {
+        viewModelScope.launch {
+            repository.updateAnchorRoute(anchorRoute).collect{ resource ->
+                when (resource) {
+                    is Resource.Success -> resource.data
+                    is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel", "Loading observing anchor routes...")
+                }
+            }
+        }
 
     }
 
     fun deleteAnchorRoute(id: String) {
+        viewModelScope.launch {
+            repository.deleteAnchorRouteById(id).collect{ resource ->
+                when (resource) {
+                    is Resource.Success -> resource.data
+                    is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel", "Loading observing anchor routes...")
+                }
+            }
+        }
+    }
 
+    fun createAnchorRoute(anchorRoute: AnchorRoute) {
+        viewModelScope.launch {
+            repository.createAnchorRoute(anchorRoute).collect { result ->
+                when (result) {
+                    is Resource.Loading -> println("Creating anchor route: Loading...")
+                    is Resource.Success -> _selectedRoute.value = result.data
+                    is Resource.Error -> println("Creating anchor route: Error - ${result.message}")
+                }
+            }
+        }
     }
 }

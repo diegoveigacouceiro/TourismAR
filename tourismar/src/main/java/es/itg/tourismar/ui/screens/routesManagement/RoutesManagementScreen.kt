@@ -67,34 +67,27 @@ fun RoutesManagementScreen(
     modifier: Modifier = Modifier,
     viewModel: RoutesManagementViewModel = hiltViewModel()
 ) {
-    val (showCreateRouteDialog, setShowCreateRouteDialog) = remember { mutableStateOf(false) }
 
     Scaffold(
         floatingActionButton = {
-            if (!showCreateRouteDialog) {
-                FloatingActionButton(
-                    onClick = { setShowCreateRouteDialog(true) },
-                    modifier = Modifier
-                        .padding(bottom = 50.dp)
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_route))
-                }
+            FloatingActionButton(
+                onClick = {
+                    navController.currentBackStackEntry?.savedStateHandle?.set("selectedRoute", AnchorRoute())
+                    navController.navigate(Screens.EditAnchorRoute.route)
+                          },
+                modifier = modifier
+                    .padding(bottom = 50.dp)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_route))
             }
+
         },
         content = { innerModifier ->
-            innerModifier
             RoutesManagementContent(
                 viewModel = viewModel,
-                modifier = Modifier,
-                navController = navController,
-                onCreateRouteClicked = { setShowCreateRouteDialog(true) }
+                modifier = modifier.padding(innerModifier),
+                navController = navController
             )
-            if (showCreateRouteDialog) {
-                CreateRouteAlertDialog(
-                    onDismissRequest = { setShowCreateRouteDialog(false) },
-                    onCreateRoute = {  }
-                )
-            }
         }
     )
 }
@@ -103,65 +96,42 @@ fun RoutesManagementScreen(
 fun RoutesManagementContent(
     viewModel: RoutesManagementViewModel,
     modifier: Modifier,
-    navController: NavController,
-    onCreateRouteClicked: () -> Unit
+    navController: NavController
 ) {
     var anchorRoutesState by remember { mutableStateOf<List<AnchorRoute>?>(null) }
-    var selectedAnchorRoute by remember { mutableStateOf<AnchorRoute?>(null)}
 
-        LaunchedEffect(viewModel) {
-            viewModel.anchorRoutes.observeForever { anchorRoutes ->
-                anchorRoutesState = anchorRoutes
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .fillMaxSize(1f)
-        ) {
-            Column {
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Existing Routes
-                if (anchorRoutesState != null) {
-                    Text(
-                        text = stringResource(R.string.existing_routes),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    AnchorRoutesGrid(
-                        anchorRoutes = anchorRoutesState!!,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        navController = navController
-                    ) { anchorRoute ->
-                        selectedAnchorRoute = anchorRoute
-                        navController.currentBackStackEntry?.savedStateHandle?.set("anchorRoute", anchorRoute
-                        )
-                        navController.navigate(Screens.EditAnchorRoute.route)
-                    }
-                }
-            }
-
-            // AR Scene access for selected route (optional)
-            selectedAnchorRoute?.let { anchorRoute ->
-                FloatingActionButton(
-                    onClick = {
-                        navController.currentBackStackEntry?.savedStateHandle?.set(
-                            "anchorRoute", anchorRoute
-                        )
-                        navController.navigate(Screens.ARScene.route)
-                    },
-                    modifier = Modifier.align(Alignment.BottomEnd)
-                ) {
-                    Icon(
-                        Icons.Filled.PlayArrow,
-                        contentDescription = stringResource(R.string.ar_scene)
-                    )
-                }
-            }
+    LaunchedEffect(viewModel) {
+        viewModel.anchorRoutes.observeForever { anchorRoutes ->
+            anchorRoutesState = anchorRoutes
         }
     }
+
+    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Existing Routes
+        if (anchorRoutesState != null) {
+            Text(
+                text = stringResource(R.string.existing_routes),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            AnchorRoutesGrid(
+                anchorRoutes = anchorRoutesState!!,
+                modifier = Modifier.padding(vertical = 8.dp),
+                navController = navController
+            ) { anchorRoute ->
+                navController.currentBackStackEntry?.savedStateHandle?.set(
+                    "selectedRoute", anchorRoute
+                )
+                navController.navigate(Screens.EditAnchorRoute.route)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(56.dp))
+    }
+}
+
 
 
 @Composable
@@ -175,7 +145,7 @@ fun AnchorRoutesGrid(
         contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier = modifier
             .height(LocalConfiguration.current.screenHeightDp.dp)
     ) {
         items(anchorRoutes) { anchorRoute ->
@@ -291,36 +261,4 @@ fun DetailedAnchorRouteCard(
             }
         }
     }
-}
-
-@Composable
-fun CreateRouteAlertDialog(
-    onDismissRequest: () -> Unit,
-    onCreateRoute: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismissRequest,
-        title = { Text(stringResource(R.string.create_new_route)) },
-        text = {
-            // Placeholder for route details input fields
-            Column {
-                TextField(
-                    value = "wefwef",
-                    onValueChange = { it },
-                    label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onCreateRoute) {
-                Text(stringResource(R.string.create))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismissRequest) {
-                Text(stringResource(R.string.cancel))
-            }
-        }
-    )
 }

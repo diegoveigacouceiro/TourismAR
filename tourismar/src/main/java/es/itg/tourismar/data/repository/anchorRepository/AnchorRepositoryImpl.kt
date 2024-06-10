@@ -18,12 +18,12 @@ class AnchorRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ): AnchorRepository {
 
-    override fun createAnchorRoute(anchorRoute: AnchorRoute): Flow<Resource<Task<Void>>> {
+    override fun createAnchorRoute(anchorRoute: AnchorRoute): Flow<Resource<AnchorRoute>> {
         return flow {
             emit(Resource.Loading())
             val anchorRouteWithId = anchorRoute.copy(id = UUID.randomUUID().toString())
-            val result = firestore.collection("anchorRoutes").document(anchorRouteWithId.id).set(anchorRouteWithId)
-            emit(Resource.Success(result))
+            firestore.collection("anchorRoutes").document(anchorRouteWithId.id).set(anchorRouteWithId)
+            emit(Resource.Success(anchorRouteWithId))
         }.catch {
             emit(Resource.Error(it.message.toString()))
         }

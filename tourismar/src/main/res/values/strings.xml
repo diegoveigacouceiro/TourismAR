@@ -12,4 +12,5 @@
     <string name="cancel">Voltar</string>
     <string name="create">Crear ruta</string>
     <string name="create_new_route">Nova ruta</string>
+    <string name="add_photo">Añadir foto</string>
 </resources>

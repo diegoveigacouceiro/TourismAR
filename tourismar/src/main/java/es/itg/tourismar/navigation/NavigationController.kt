@@ -12,7 +12,6 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -73,13 +72,13 @@ fun NavigationController() {
                 is Screens.Home -> {
                     composable(route = screen.route) {
                         HomeScreen(navController)
-                        MyApp2(navController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
+                        MyApp(navController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
                     }
                 }
                 is Screens.MarkerScreen -> {
                     composable(route = screen.route) {
                         MarkerScreen(navController)
-                        MyApp2(navController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
+                        MyApp(navController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
                     }
                 }
                 is Screens.ARScene -> {
@@ -103,13 +102,13 @@ fun NavigationController() {
                 is Screens.RoutesManagement -> {
                     composable(route = screen.route) {
                         RoutesManagementScreen(navController)
-                        MyApp2(navController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
+                        MyApp(navController, onLogout = { FirebaseAuth.getInstance().signOut() }, currentScreen = screen)
                     }
                 }
                 is Screens.EditAnchorRoute -> {
                     composable(route = screen.route) {
-                        val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.get("anchorRoute")
-                        EditAnchorRouteScreen(anchorRoute,navController)
+                        val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.get("selectedRoute")
+                        EditAnchorRouteScreen(anchorRoute,navController,Modifier)
                     }
                 }
             }
@@ -119,10 +118,9 @@ fun NavigationController() {
 
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Screens?) {
-    var showModalDrawer by remember { mutableStateOf(currentScreen !in listOf(Screens.SignIn, Screens.ARScene, Screens.SignUp)) }
+fun MyApp(navController: NavController, onLogout: () -> Unit, currentScreen: Screens?) {
+    val showModalDrawer by remember { mutableStateOf(currentScreen !in listOf(Screens.SignIn, Screens.ARScene, Screens.SignUp)) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var userLevel by remember { mutableIntStateOf(UserLevel.NORMAL.ordinal)}
@@ -147,7 +145,7 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
             unselectedIcon = Icons.Outlined.PlayArrow,
         )
     )
-    var selectedItemIndex by rememberSaveable { mutableStateOf(0) }
+    var selectedItemIndex by rememberSaveable { mutableIntStateOf(0) }
 
 
 
@@ -234,7 +232,7 @@ fun MyApp2(navController: NavController, onLogout: () -> Unit, currentScreen: Sc
                     is Screens.SignIn -> SignInScreen(navController)
                     is Screens.SignUp -> SignUpScreen(navController)
                     is Screens.RoutesManagement -> RoutesManagementScreen(navController)
-                    is Screens.EditAnchorRoute -> EditAnchorRouteScreen(null, navController)
+                    is Screens.EditAnchorRoute -> EditAnchorRouteScreen(null, navController,Modifier)
                     null -> TODO()
 
                 }

@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AnchorRepository {
 
-    fun createAnchorRoute(anchorRoute: AnchorRoute) : Flow<Resource<Task<Void>>>
+    fun createAnchorRoute(anchorRoute: AnchorRoute) : Flow<Resource<AnchorRoute>>
     fun readAnchorRoutes(): Flow<Resource<List<AnchorRoute>>>
     fun observeAnchorRoutes(): Flow<Resource<List<AnchorRoute>>>
     fun readAnchorRouteById(id: String): Flow<Resource<AnchorRoute?>>
