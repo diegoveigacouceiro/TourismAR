@@ -16,6 +16,8 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.StreetViewPanoramaOptions
+import com.google.android.gms.maps.model.AdvancedMarker
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -25,6 +27,7 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.streetview.StreetView
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.data.model.marker.MarkerRoute
 import kotlin.math.pow
@@ -95,7 +98,8 @@ fun MapComposable(
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
-        properties = mapsConfiguration.properties.value
+        properties = mapsConfiguration.properties.value,
+        uiSettings = mapsConfiguration.uiSettings.value
     ) {
         RenderMarkers(markersToRender, cameraPositionState)
     }
@@ -104,19 +108,11 @@ fun MapComposable(
 
 @Composable
 private fun RenderMarkers(markers: List<MapMarkerItem>, cameraPositionState: CameraPositionState) {
-
     markers.forEach { marker ->
         Marker(
             state = MarkerState(marker.latLng),
             title = marker.title,
-            onClick = {
-                it.showInfoWindow()
-                      true},
-            onInfoWindowClick = { /* Manejar clic en la ventana de información */ },
-            onInfoWindowClose = { /* Manejar cierre de la ventana de información */ },
-            onInfoWindowLongClick = { /* Manejar clic largo en la ventana de información */ }
         )
-
     }
 }
 

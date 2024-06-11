@@ -111,6 +111,8 @@ dependencies {
 
     implementation("com.google.android.gms:play-services-location:21.2.0")
 
+    //Animaciones
+    implementation "com.google.accompanist:accompanist-navigation-animation:0.24.3-alpha"
 
 
     debugImplementation project(":arsceneview")

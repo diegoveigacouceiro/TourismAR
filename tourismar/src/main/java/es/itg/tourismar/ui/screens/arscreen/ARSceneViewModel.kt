@@ -76,7 +76,7 @@ class ARSceneViewModel @Inject constructor(
         viewModelScope.launch {
             anchorRepository.updateAnchorRoute(anchorRoute).collect{ resource ->
                 when(resource){
-                    is Resource.Success -> onSuccess("AnchorRoute updated: ${resource.message}")
+                    is Resource.Success -> onSuccess("AnchorRoute updated")
                     is Resource.Error -> onFailure(Exception(resource.message))
                     is Resource.Loading -> Log.d("Firebase","Updating anchorRoute")
                 }

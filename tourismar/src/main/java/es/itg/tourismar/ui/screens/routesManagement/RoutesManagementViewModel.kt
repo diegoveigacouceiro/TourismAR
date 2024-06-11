@@ -1,8 +1,7 @@
 package es.itg.tourismar.ui.screens.routesManagement
 
+import android.net.Uri
 import android.util.Log
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -10,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
+import es.itg.tourismar.data.repository.storageRepository.StorageRepository
 import es.itg.tourismar.util.Resource
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -18,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class RoutesManagementViewModel @Inject constructor(
-    private val repository: AnchorRepository
+    private val anchorRepository: AnchorRepository,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
 
     private val _anchorRoutes = MutableLiveData<List<AnchorRoute>?>()
@@ -27,13 +28,23 @@ class RoutesManagementViewModel @Inject constructor(
     private val _selectedRoute = MutableLiveData<AnchorRoute?>()
     val selectedRoute: MutableLiveData<AnchorRoute?> get() = _selectedRoute
 
+    private val _selectedImageUri = MutableLiveData<Uri?>()
+    val selectedImageUri: MutableLiveData<Uri?> get() = _selectedImageUri
+
     init {
+        startObserveAnchorRoutes()
+    }
+
+    private fun startObserveAnchorRoutes(){
         viewModelScope.launch {
-            repository.observeAnchorRoutes().collect { resource ->
+            anchorRepository.observeAnchorRoutes().collect { resource ->
                 when (resource) {
-                    is Resource.Success -> _anchorRoutes.value = resource.data
-                    is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
-                    is Resource.Loading -> Log.d("RoutesManagementViewModel", "Loading observing anchor routes...")
+                    is Resource.Success -> {
+                        Log.d("HomeViewModel", "Anchor routes loaded: ${resource.data}")
+                        _anchorRoutes.value = resource.data
+                    }
+                    is Resource.Error -> Log.e("HomeViewModel", "Error observing anchor routes: ${resource.message}")
+                    is Resource.Loading -> Log.d("HomeViewModel", "Loading observing anchor routes...")
                 }
             }
         }
@@ -47,7 +58,7 @@ class RoutesManagementViewModel @Inject constructor(
     fun getAnchorRoute(routeId: String): AnchorRoute? {
         var anchorRoute: AnchorRoute? = null
         viewModelScope.launch {
-            repository.readAnchorRouteById(routeId).collect{ resource ->
+            anchorRepository.readAnchorRouteById(routeId).collect{ resource ->
                 when (resource) {
                     is Resource.Success -> anchorRoute = resource.data
                     is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
@@ -62,7 +73,7 @@ class RoutesManagementViewModel @Inject constructor(
 
     fun updateAnchorRoute(anchorRoute: AnchorRoute) {
         viewModelScope.launch {
-            repository.updateAnchorRoute(anchorRoute).collect{ resource ->
+            anchorRepository.updateAnchorRoute(anchorRoute).collect{ resource ->
                 when (resource) {
                     is Resource.Success -> resource.data
                     is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
@@ -75,7 +86,7 @@ class RoutesManagementViewModel @Inject constructor(
 
     fun deleteAnchorRoute(id: String) {
         viewModelScope.launch {
-            repository.deleteAnchorRouteById(id).collect{ resource ->
+            anchorRepository.deleteAnchorRouteById(id).collect{ resource ->
                 when (resource) {
                     is Resource.Success -> resource.data
                     is Resource.Error -> Log.e("RoutesManagementViewModel", "Error observing anchor routes: ${resource.message}")
@@ -87,11 +98,35 @@ class RoutesManagementViewModel @Inject constructor(
 
     fun createAnchorRoute(anchorRoute: AnchorRoute) {
         viewModelScope.launch {
-            repository.createAnchorRoute(anchorRoute).collect { result ->
+            anchorRepository.createAnchorRoute(anchorRoute).collect { result ->
                 when (result) {
-                    is Resource.Loading -> println("Creating anchor route: Loading...")
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel", "Creating anchor route: Loading...")
                     is Resource.Success -> _selectedRoute.value = result.data
-                    is Resource.Error -> println("Creating anchor route: Error - ${result.message}")
+                    is Resource.Error -> Log.e("RoutesManagementViewModel", "Creating anchor route: Error - ${result.message}")
+                }
+            }
+        }
+    }
+
+    fun saveImage(fileUri: Uri, imageName: String) {
+        viewModelScope.launch {
+            storageRepository.uploadImageToStorage(fileUri, imageName).collect { result ->
+                when (result) {
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel","Saving image: Loading...")
+                    is Resource.Success -> Log.e("RoutesManagementViewModel","Image saved")
+                    is Resource.Error -> Log.e("RoutesManagementViewModel","Save image: Error - ${result.message}")
+                }
+            }
+        }
+    }
+
+    fun getImage(imageName: String){
+        viewModelScope.launch {
+            storageRepository.loadImageFromStorage(imageName).collect { result ->
+                when (result) {
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel","Saving image: Loading...")
+                    is Resource.Success -> _selectedImageUri.value = result.data
+                    is Resource.Error -> Log.e("RoutesManagementViewModel","Save image: Error - ${result.message}")
                 }
             }
         }

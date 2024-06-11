@@ -1,14 +1,17 @@
 package es.itg.tourismar.ui.screens.arscreen.controllers
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.util.Log
 import android.view.MotionEvent
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.graphics.Color
 import com.google.android.filament.Engine
 import com.google.android.filament.View
 import com.google.ar.core.DepthPoint
@@ -50,7 +53,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
+import com.google.android.filament.MaterialInstance
 import hilt_aggregated_deps._dagger_hilt_android_internal_lifecycle_HiltViewModelFactory_ViewModelFactoriesEntryPoint
+import io.github.sceneview.geometries.Cube
+import io.github.sceneview.node.CubeNode
 
 
 class ARSceneController(
@@ -375,11 +381,49 @@ class ARSceneController(
         }
 //        setAnchorNodeEditability(anchorNode,
 //            isPositionEditable = isPositionEditable)
+        val cubeNode = CubeNode(
+            engine,
+            Cube.DEFAULT_SIZE,
+            Cube.DEFAULT_CENTER,
+            materialLoader.createColorInstance(Color.White.copy(alpha = 1f))).apply {
+                withContext(Dispatchers.Main){
+                    loadingAnimation(this@apply)
 
+                }
+        }
         anchorNode.clearChildNodes()
-        anchorNode.addChildNode(modelNode)
+//        anchorNode.addChildNode(modelNode)
+        anchorNode.addChildNode(cubeNode)
         return@withContext anchorNode
     }
+}
+
+
+
+private fun loadingAnimation(cubeNode: CubeNode) {
+
+    val jumpAnimator = ValueAnimator.ofFloat(0f, 0.2f).apply {
+        duration = 2000
+        interpolator = AccelerateDecelerateInterpolator()
+        repeatMode = ValueAnimator.REVERSE
+        repeatCount = ValueAnimator.INFINITE
+        addUpdateListener { animation ->
+            val translationY = animation.animatedValue as Float
+            cubeNode.position = Position(y = translationY)
+        }
+    }
+    val rotationAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
+        duration = 4000
+        interpolator = AccelerateDecelerateInterpolator()
+        repeatCount = ValueAnimator.INFINITE
+        repeatMode = ValueAnimator.RESTART
+        addUpdateListener { animation ->
+            val newRotation = animation.animatedValue as Float
+            cubeNode.rotation = Float3(0f, newRotation, 0f)
+        }
+    }
+    jumpAnimator.start()
+    rotationAnimator.start()
 }
 
 

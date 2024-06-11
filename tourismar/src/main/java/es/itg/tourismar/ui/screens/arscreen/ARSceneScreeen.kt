@@ -85,6 +85,7 @@ import es.itg.tourismar.data.model.anchor.Pose
 import es.itg.tourismar.data.model.anchor.ScanningState
 import es.itg.tourismar.data.model.anchor.SerializableFloat3
 import es.itg.tourismar.data.model.marker.MarkerRoute
+import es.itg.tourismar.data.model.users.UserLevel
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneController
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneControllerFactory
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
@@ -108,7 +109,7 @@ import java.util.Locale
 
 
 @Composable
-fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, markerRoute: MarkerRoute?, viewModel: ARSceneViewModel = hiltViewModel()) {
+fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, markerRoute: MarkerRoute?, userLevel: UserLevel, viewModel: ARSceneViewModel = hiltViewModel()) {
     val trackingFailureReason by remember { mutableStateOf<TrackingFailureReason?>(null) }
     val frame by remember { mutableStateOf<Frame?>(null) }
     val session by remember { mutableStateOf<Session?>(null) }
@@ -131,7 +132,8 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
                 navController = navController,
                 anchorRoute,
                 arSceneController,
-                viewModel
+                viewModel,
+                userLevel
             )
         }
     ) { it ->
@@ -198,7 +200,7 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
                             arSceneController.createAnchorNodeFromAnchor(anchor).let {
                                 arSceneController.viewModelScope.launch {
                                     with(arSceneController) {
-                                        childNodes.add(Pair(null, it))
+                                        childNodes.add(Pair("LoadingModel", it))
                                         createAnchorNode(anchorNode = it)
                                     }
                                     with(arSceneController){
@@ -241,82 +243,76 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
 
 
 @Composable
-fun ARSceneFloatingActions(navController: NavController, anchorRoute: AnchorRoute?, viewController: ARSceneController, viewModel: ARSceneViewModel) {
+fun ARSceneFloatingActions(navController: NavController, anchorRoute: AnchorRoute?, viewController: ARSceneController, viewModel: ARSceneViewModel, userLevel: UserLevel) {
     val showDialogProperties = remember { mutableStateOf(false) }
     val showDialogMap = remember { mutableStateOf(false) }
     val showDialogAnchorForm = remember { mutableStateOf(false) }
     val cloudAnchorId = remember { mutableStateOf("") }
+    val isHosting = remember { mutableStateOf(false) }
 
     Column {
         ARSceneFloatingActionButton(
-            onClick = { showDialogProperties.value = true },
-            content = {
-                ShowARSceneOptionsDialog(viewController)
-            },
-            icon = Icons.TwoTone.Settings,
-            showDialog = showDialogProperties,
-            contentDescription = "Properties",
-            modifier = Modifier.padding(8.dp)
-        )
-
-        ARSceneFloatingActionButton(
             onClick = { showDialogMap.value = true },
-            content = {
-                MapComposable(anchorRoute = anchorRoute)
-            },
+            content = { MapComposable(anchorRoute = anchorRoute) },
             icon = Icons.TwoTone.LocationOn,
             showDialog = showDialogMap,
             contentDescription = "Map",
             modifier = Modifier.padding(8.dp)
         )
-
-        ARSceneFloatingActionButton(
-            onClick = {
-                if (viewController.scanningState == ScanningState.READY_TO_HOST) {
-                    viewController.placedAnchor?.let {
-                        viewController.handleHosting(it,
-                            onSuccess = { anchorId ->
-                                cloudAnchorId.value = anchorId
-                                showDialogAnchorForm.value = true
-                            },
-                            onFailure = {
-                                viewController.placedAnchor?.detach()
-                                viewController.placedAnchor = null
-                            })
-                        Toast.makeText(viewController.context, "Trying to host an anchor", Toast.LENGTH_SHORT).show()
+        if(userLevel == UserLevel.PRIVILEGED){
+            ARSceneFloatingActionButton(
+                icon = Icons.TwoTone.Add,
+                showDialog = showDialogAnchorForm,
+                contentDescription = "Host Anchor",
+                modifier = Modifier.padding(8.dp),
+                containerColor = if (viewController.scanningState == ScanningState.READY_TO_HOST) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                onClick = {
+                    if (!isHosting.value && viewController.scanningState == ScanningState.READY_TO_HOST) {
+                        viewController.placedAnchor?.let {
+                            isHosting.value = true
+                            viewController.handleHosting(it,
+                                onSuccess = { anchorId ->
+                                    cloudAnchorId.value = anchorId
+                                    showDialogAnchorForm.value = true
+                                    isHosting.value = false
+                                },
+                                onFailure = {
+                                    viewController.placedAnchor?.detach()
+                                    viewController.placedAnchor = null
+                                    isHosting.value = false
+                                })
+                            Toast.makeText(viewController.context, "Trying to host an anchor", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(viewController.context, "Keep scanning the environment before hosting an anchor.", Toast.LENGTH_SHORT).show()
                     }
-                } else {
-                    Toast.makeText(viewController.context, "Keep scanning the environment before hosting an anchor.", Toast.LENGTH_SHORT).show()
+                },
+                content = {
+                    AnchorForm(
+                        viewModel = viewModel,
+                        anchorId = cloudAnchorId.value,
+                        anchorRoute = anchorRoute!!,
+                        viewController = viewController,
+                        onSubmit = {
+                            anchorRoute.anchors += it
+                            viewModel.updateAnchorRoute(anchorRoute,
+                                onSuccess = {
+                                    viewController.childNodes.removeIf { node-> node.first == "LoadingModel" }
+                                    Toast.makeText(viewController.context, it, Toast.LENGTH_SHORT).show()
+                                },
+                                onFailure = {
+                                    Toast.makeText(viewController.context, it.message, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    )
                 }
-            },
-            content = {
-                AnchorForm(
-                    viewModel = viewModel,
-                    anchorId = cloudAnchorId.value,
-                    anchorRoute = anchorRoute!!,
-                    viewController = viewController,
-                    onSubmit = {
-                        anchorRoute.anchors+=it
-                        viewModel.updateAnchorRoute(anchorRoute,
-                            onSuccess = {
-                                Toast.makeText(viewController.context,it,Toast.LENGTH_SHORT).show()
-                            },
-                            onFailure = {
-                                Toast.makeText(viewController.context,it.message,Toast.LENGTH_SHORT).show()
+            )
+        }
 
-                            })
-
-                    }
-                )
-            },
-            icon = Icons.TwoTone.Add,
-            showDialog = showDialogAnchorForm,
-            contentDescription = "Host Anchor",
-            modifier = Modifier.padding(8.dp),
-            containerColor = if (viewController.scanningState == ScanningState.READY_TO_HOST) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary
-        )
     }
 }
+
 
 @Composable
 fun ARSceneFloatingActionButton(

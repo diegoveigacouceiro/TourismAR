@@ -13,4 +13,5 @@
     <string name="create">Crear ruta</string>
     <string name="create_new_route">Nova ruta</string>
     <string name="add_photo">Añadir foto</string>
+    <string name="search_placeholder">Ruta por Santiago</string>
 </resources>

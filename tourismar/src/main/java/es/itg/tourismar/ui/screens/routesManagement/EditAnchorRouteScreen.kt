@@ -1,6 +1,8 @@
 package es.itg.tourismar.ui.screens.routesManagement
 
+import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedButton
@@ -38,6 +41,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.Anchor
+import es.itg.tourismar.data.model.users.UserLevel
 import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.markerScreen.MarkerRouteCard
 import es.itg.tourismar.ui.theme.SceneViewTheme
@@ -62,16 +67,31 @@ fun EditAnchorRouteScreen(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-//    var selectedRoute by remember { mutableStateOf<AnchorRoute?>(anchorRoute) }
+    var selectedImageName by remember { mutableStateOf(anchorRoute?.imageUrl) }
 
+    LaunchedEffect(anchorRoute) {
+        if (anchorRoute != null) {
+            viewModel.setSelectedRoute(anchorRoute)
+            selectedImageName = anchorRoute.imageUrl
+            if (!selectedImageName.isNullOrEmpty()) {
+                viewModel.getImage(selectedImageName!!)
+            }
+        }
+    }
+
+    val imageUri by viewModel.selectedImageUri.observeAsState()
+
+    LaunchedEffect(imageUri) {
+        if (imageUri != null) {
+            selectedImageUri = imageUri
+        }
+    }
 
     SceneViewTheme(
         dynamicColor = true
     ) {
         Surface(
-            modifier = modifier
-                .fillMaxSize()
-
+            modifier = modifier.fillMaxSize()
         ) {
             anchorRoute?.let {
                 EditAnchorRouteScreenContent(
@@ -80,7 +100,11 @@ fun EditAnchorRouteScreen(
                     viewModel,
                     modifier,
                     selectedImageUri,
-                    { uri -> selectedImageUri = uri }
+                    selectedImageName,
+                    { uri, name ->
+                        selectedImageUri = uri
+                        selectedImageName = name
+                    }
                 ) { showDeleteDialog = true }
             }
 
@@ -97,6 +121,7 @@ fun EditAnchorRouteScreen(
 
 
 
+
 @Composable
 fun EditAnchorRouteScreenContent(
     anchorRoute: AnchorRoute,
@@ -104,14 +129,16 @@ fun EditAnchorRouteScreenContent(
     viewModel: RoutesManagementViewModel,
     modifier: Modifier,
     selectedImageUri: Uri?,
-    onImageSelected: (Uri) -> Unit,
+    selectedImageName: String?,
+    onImageSelected: (Uri, String) -> Unit,
     onClickDelete: () -> Unit
 ) {
-    var selectedRoute by remember { mutableStateOf(anchorRoute) }
-    val routeName = remember { mutableStateOf(selectedRoute.anchorRouteName) }
-    val routeDescription = remember { mutableStateOf(selectedRoute.description) }
-    val isExistingRoute = selectedRoute.id.isNotEmpty()
-    var expanded by remember { mutableStateOf(false) }
+    val selectedRoute by viewModel.selectedRoute.observeAsState()
+    if (selectedRoute == null) return
+
+    val routeName = remember { mutableStateOf(selectedRoute!!.anchorRouteName) }
+    val routeDescription = remember { mutableStateOf(selectedRoute!!.description) }
+    val isExistingRoute = selectedRoute!!.id.isNotEmpty()
     var selectedAnchor by remember { mutableStateOf<Anchor?>(null) }
 
     Box(
@@ -123,7 +150,7 @@ fun EditAnchorRouteScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 80.dp), // Espacio para los botones flotantes
+                .padding(bottom = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (isExistingRoute) {
@@ -170,13 +197,15 @@ fun EditAnchorRouteScreenContent(
                 modifier = Modifier
                     .height(LocalConfiguration.current.screenHeightDp.dp)
             ) {
-                items(selectedRoute.anchors) { anchor ->
+                items(selectedRoute!!.anchors) { anchor ->
                     AnchorItem(anchor = anchor,
                         isSelected = anchor == selectedAnchor,
                         onClick = {
-                        selectedAnchor = if (selectedAnchor == anchor) null else anchor
-                    } ,
-                        onDelete = {selectedRoute.anchors.toHashSet().remove(anchor)}
+                            selectedAnchor = if (selectedAnchor == anchor) null else anchor
+                        } ,
+                        onDelete = { val updatedAnchors = selectedRoute!!.anchors.filter { it.id != anchor.id }
+                            viewModel.setSelectedRoute(selectedRoute!!.copy(anchors = updatedAnchors))
+                        }
                     )
                 }
             }
@@ -192,21 +221,25 @@ fun EditAnchorRouteScreenContent(
             FloatingActionButton(
                 onClick = {
                     if (isExistingRoute) {
+                        if (selectedImageUri != null && selectedImageName != null) {
+                            viewModel.saveImage(selectedImageUri, selectedImageName)
+                        }
                         viewModel.updateAnchorRoute(
-                            selectedRoute.copy(
+                            selectedRoute!!.copy(
                                 anchorRouteName = routeName.value,
-                                description = routeDescription.value
+                                description = routeDescription.value,
+                                imageUrl = selectedImageName ?: ""
                             )
                         )
                     } else {
                         viewModel.createAnchorRoute(
-                            selectedRoute.copy(
+                            selectedRoute!!.copy(
                                 anchorRouteName = routeName.value,
-                                description = routeDescription.value
+                                description = routeDescription.value,
+                                imageUrl = selectedImageName ?: ""
                             )
                         )
                     }
-                    navController.popBackStack()
                 }
             ) {
                 Icon(Icons.Filled.Done, contentDescription = stringResource(R.string.save))
@@ -215,6 +248,7 @@ fun EditAnchorRouteScreenContent(
             FloatingActionButton(
                 onClick = {
                     navController.currentBackStackEntry?.savedStateHandle?.set("anchorRoute", selectedRoute)
+                    navController.currentBackStackEntry?.savedStateHandle?.set("userLevel", UserLevel.PRIVILEGED)
                     navController.navigate(Screens.ARScene.route)
                 }
             ) {
@@ -223,6 +257,7 @@ fun EditAnchorRouteScreenContent(
         }
     }
 }
+
 
 @Composable
 fun AnchorItem(anchor: Anchor, isSelected: Boolean, onClick: () -> Unit, onDelete: () -> Unit) {
@@ -255,13 +290,16 @@ fun AnchorItem(anchor: Anchor, isSelected: Boolean, onClick: () -> Unit, onDelet
 @Composable
 fun ImagePicker(
     selectedImageUri: Uri?,
-    onImageSelected: (Uri) -> Unit
+    onImageSelected: (Uri, String) -> Unit
 ) {
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { onImageSelected(it) }
+        uri?.let {
+            val fileName = getFileNameFromUri(context, it)
+            onImageSelected(it, fileName)
+        }
     }
 
     Box(
@@ -287,12 +325,26 @@ fun ImagePicker(
                     Icons.TwoTone.Add,
                     contentDescription = stringResource(R.string.add_photo),
                     modifier = Modifier.size(48.dp),
-                    tint =MaterialTheme.colorScheme.background
-                    )
+                    tint = MaterialTheme.colorScheme.background
+                )
             }
         }
     }
 }
+
+fun getFileNameFromUri(context: Context, uri: Uri): String {
+    var fileName = ""
+    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        if (cursor.moveToFirst()) {
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex != -1) {
+                fileName = cursor.getString(nameIndex)
+            }
+        }
+    }
+    return fileName
+}
+
 
 
 @Composable
@@ -310,6 +362,7 @@ fun ShowDeleteRouteConfirmationDialog(
             TextButton(onClick = {
                 viewModel.deleteAnchorRoute(routeId)
                 navController.popBackStack()
+                navController.navigate(Screens.RoutesManagement.route)
             }) {
                 Text(stringResource(R.string.delete))
             }

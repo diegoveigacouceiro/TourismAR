@@ -1,6 +1,7 @@
 package es.itg.tourismar.data.repository.storageRepository
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.google.firebase.storage.FirebaseStorage
 import es.itg.tourismar.util.Resource
@@ -21,6 +22,7 @@ class StorageRepositoryImpl @Inject constructor(
     private val context: Context
 ) : StorageRepository {
     private val MODELS_PATH = "models/"
+    private val IMAGES_PATH = "images/"
     /**
      * Descarga el archivo GLB desde Firebase Storage y devuelve el objeto necesario
      * para crear el modelo con createModel.
@@ -95,6 +97,33 @@ class StorageRepositoryImpl @Inject constructor(
         }.catch { e ->
             Log.e("Firebase", "Error al obtener la lista de archivos: ${e.message}")
             emit(Resource.Error(e.message ?: "Unknown error"))
+        }.flowOn(Dispatchers.IO)
+    }
+
+    override suspend fun uploadImageToStorage(
+        fileUri: Uri,
+        imageName: String
+    ): Flow<Resource<String>> {
+        return flow {
+            emit(Resource.Loading())
+
+            val storageReference = storage.reference.child(IMAGES_PATH + imageName)
+            storageReference.putFile(fileUri).await()
+            val imageUrl = storageReference.downloadUrl.await().toString()
+            emit(Resource.Success(imageUrl))
+        }.catch { e ->
+            emit(Resource.Error(e.message?:"Unknown error"))
+        }.flowOn(Dispatchers.IO)
+    }
+
+    override suspend fun loadImageFromStorage(imageName: String): Flow<Resource<Uri>> {
+        return flow {
+            emit(Resource.Loading())
+            val storageReference = storage.reference.child(IMAGES_PATH + imageName)
+            val imageUrl = storageReference.downloadUrl.await()
+            emit(Resource.Success(imageUrl))
+        }.catch { e ->
+            emit(Resource.Error(e.message?:"Unknown error"))
         }.flowOn(Dispatchers.IO)
     }
 }

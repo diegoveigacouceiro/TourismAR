@@ -3,7 +3,6 @@ package es.itg.tourismar.data.model.marker
 import android.os.Parcelable
 import com.google.android.gms.maps.model.LatLng
 import es.itg.tourismar.R
-import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.ui.screens.googleMap.MapMarkerItem
 import kotlinx.parcelize.Parcelize
 

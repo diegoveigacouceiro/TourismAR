@@ -7,7 +7,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -25,11 +26,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,69 +41,71 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.annotation.ExperimentalCoilApi
+import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
+import es.itg.tourismar.data.model.marker.MarkerRoute
+import es.itg.tourismar.data.model.users.UserLevel
 import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
+import es.itg.tourismar.ui.screens.markerScreen.DetailedMarkerRouteCard
+import es.itg.tourismar.ui.screens.markerScreen.MarkerRouteCard
 
 
 @Composable
 fun HomeScreen(
     navController: NavController,
     modifier: Modifier=Modifier,
-    viewModel: HomeViewModel = hiltViewModel()
+    homeViewModel: HomeViewModel = hiltViewModel(),
 ) {
-    Surface(color = MaterialTheme.colorScheme.background) {
-        HomeScreenContent(viewModel,modifier, navController)
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+    ) {
+        HomeScreenContent(homeViewModel, modifier, navController)
     }
 }
 
 
-
 @Composable
 fun HomeScreenContent(
-    viewModel: HomeViewModel,
+    homeViewModel: HomeViewModel,
     modifier: Modifier,
     navController: NavController
 ) {
-    var anchorRoutesState by remember { mutableStateOf<List<AnchorRoute>?>(null) }
-    var selectedAnchorRoute by remember { mutableStateOf<AnchorRoute?>(null) }
+    val searchText by homeViewModel.searchText.observeAsState("")
+    val filteredAnchorRoutes by homeViewModel.filteredAnchorRoutes.observeAsState(emptyList())
+    val filteredMarkerRoutes by homeViewModel.filteredMarkerRoutes.observeAsState(emptyList())
 
-    LaunchedEffect(viewModel) {
-        viewModel.anchorRoutes.observeForever { anchorRoutes ->
-            anchorRoutesState = anchorRoutes
-        }
-    }
+    var selectedAnchorRoute by remember { mutableStateOf<AnchorRoute?>(null) }
+    var selectedMarkerRoute by remember { mutableStateOf<MarkerRoute?>(null) }
+
 
     Box(
         modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .fillMaxSize(1f)
+            .fillMaxSize()
     ) {
         Column {
             Spacer(modifier = Modifier.height(20.dp))
 
-            SearchBar(Modifier.padding(horizontal = 20.dp))
-
             HomeSection(title = R.string.app_name) {
-                anchorRoutesState?.let { routes ->
-                    AnchorRoutesGrid(routes, modifier, navController) {
-                        selectedAnchorRoute = it
-                    }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+                SearchBar(
+                    searchText = searchText,
+                    onSearchTextChange = homeViewModel::onSearchTextChanged,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
 
-            HomeSection(title = R.string.app_name) {
-                anchorRoutesState?.let { routes ->
-                    AnchorRoutesGrid(routes, modifier, navController) { anchorRoute ->
-                        selectedAnchorRoute = anchorRoute
-                    }
-                }
+                MixedRoutesGrid(
+                    anchorRoutes = filteredAnchorRoutes,
+                    markerRoutes = filteredMarkerRoutes,
+                    homeViewModel= homeViewModel,
+                    onAnchorRouteClicked = { selectedAnchorRoute = it },
+                    onMarkerRouteClicked = { selectedMarkerRoute = it },
+                    modifier = modifier
+                )
             }
         }
 
@@ -111,20 +116,36 @@ fun HomeScreenContent(
             ) {
                 DetailedAnchorRouteCard(
                     anchorRoute = anchorRoute,
-                    modifier = Modifier
-                        .align(Alignment.Center),
+                    modifier = Modifier.align(Alignment.Center),
                     onBackClicked = {
-                        navController.currentBackStackEntry?.savedStateHandle?.set("anchorRoute",anchorRoute)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("anchorRoute", anchorRoute)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("userLevel", UserLevel.NORMAL)
                         navController.navigate(Screens.ARScene.route)
+                        selectedAnchorRoute = null
+                    }
+                )
+            }
+        }
 
-                        selectedAnchorRoute = null }
+        selectedMarkerRoute?.let { markerRoute ->
+            Dialog(
+                onDismissRequest = { selectedMarkerRoute = null },
+                properties = DialogProperties(dismissOnClickOutside = true)
+            ) {
+                DetailedMarkerRouteCard(
+                    markerRoute = markerRoute,
+                    modifier = Modifier.align(Alignment.Center),
+                    onBackClicked = {
+                        navController.currentBackStackEntry?.savedStateHandle?.set("markerRoute", markerRoute)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("userLevel", UserLevel.NORMAL)
+                        navController.navigate(Screens.ARScene.route)
+                        selectedMarkerRoute = null
+                    }
                 )
             }
         }
     }
 }
-
-
 
 
 @Composable
@@ -139,41 +160,50 @@ fun HomeSection(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier
                 .padding(horizontal = 16.dp)
-                .paddingFromBaseline(top = 40.dp, bottom = 16.dp)
+                .paddingFromBaseline(top = 16.dp, bottom = 16.dp)
         )
         content()
     }
 }
 
 @Composable
-fun AnchorRoutesGrid(
+fun MixedRoutesGrid(
     anchorRoutes: List<AnchorRoute>,
+    markerRoutes: List<MarkerRoute>,
+    homeViewModel: HomeViewModel,
     modifier: Modifier = Modifier,
-    navController: NavController,
-    onAnchorRouteClicked: (AnchorRoute)-> Unit
+    onAnchorRouteClicked: (AnchorRoute) -> Unit,
+    onMarkerRouteClicked: (MarkerRoute) -> Unit,
 ) {
-    LazyRow(
+    LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier
-            .height(168.dp)
-            .fillMaxWidth()
+            .height(LocalConfiguration.current.screenHeightDp.dp)
     ) {
         items(anchorRoutes) { anchorRoute ->
-            AnchorRouteCard(anchorRoute = anchorRoute){
-                onAnchorRouteClicked(anchorRoute)            }
+            AnchorRouteCard(anchorRoute = anchorRoute, homeViewModel = homeViewModel) {
+                onAnchorRouteClicked(anchorRoute)
+            }
+        }
+        items(markerRoutes) { markerRoute ->
+            MarkerRouteCard(markerRoute = markerRoute, homeViewModel = homeViewModel) {
+                onMarkerRouteClicked(markerRoute)
+            }
         }
     }
 }
 
 
-@OptIn(ExperimentalCoilApi::class)
+
+
 @Composable
 fun AnchorRouteCard(
     anchorRoute: AnchorRoute,
+    homeViewModel: HomeViewModel,
     modifier: Modifier = Modifier,
-    onClick: ()-> Unit
+    onClick: () -> Unit
 ) {
     Surface(
         shape = MaterialTheme.shapes.medium,
@@ -182,20 +212,20 @@ fun AnchorRouteCard(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(8.dp)
+            modifier = modifier.padding(8.dp)
         ) {
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Image(
-                    painter = rememberImagePainter(R.mipmap.ic_torre_background),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(80.dp)
+                CustomImage(
+                    imageName = anchorRoute.imageUrl,
+                    homeViewModel = homeViewModel,
+                    modifier = modifier.size(80.dp),
+                    placeholder = R.mipmap.ic_torre_background
                 )
                 Column(
-                    modifier = Modifier
+                    modifier = modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
                         .heightIn(max = 80.dp)
@@ -203,13 +233,13 @@ fun AnchorRouteCard(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = anchorRoute.anchorRouteName!!,
+                        text = anchorRoute.anchorRouteName,
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        text = anchorRoute.description!!,
+                        text = anchorRoute.description,
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.width(200.dp),
+                        modifier = modifier.width(200.dp),
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1
                     )
@@ -218,6 +248,7 @@ fun AnchorRouteCard(
         }
     }
 }
+
 
 @Composable
 fun DetailedAnchorRouteCard(
@@ -231,31 +262,31 @@ fun DetailedAnchorRouteCard(
         modifier = modifier
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = modifier.padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = anchorRoute.anchorRouteName!!,
+                text = anchorRoute.anchorRouteName,
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = modifier.padding(bottom = 8.dp)
             )
             Text(
                 text = "Description: ${anchorRoute.description}",
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = modifier.padding(bottom = 8.dp)
             )
-            Text(
-                text = "Location: ${anchorRoute.anchors[0].location}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+//            Text(
+//                text = "Location: ${anchorRoute.anchors[0].location}",
+//                style = MaterialTheme.typography.bodySmall,
+//                modifier = Modifier.padding(bottom = 8.dp)
+//            )
             RequestMultiplePermissionsComposable(permissions = arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION
             )) {
                 ElevatedCard(
-                modifier = Modifier
+                modifier = modifier
                     .padding(8.dp)
                     .size(500.dp),
                 shape = ShapeDefaults.Medium,
@@ -267,7 +298,7 @@ fun DetailedAnchorRouteCard(
             }
             ElevatedButton(
                 onClick = onBackClicked,
-                modifier = Modifier.align(Alignment.End)
+                modifier = modifier.align(Alignment.End)
             ) {
                 Text(text = "AR")
             }
@@ -279,11 +310,13 @@ fun DetailedAnchorRouteCard(
 
 @Composable
 fun SearchBar(
+    searchText: String,
+    onSearchTextChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     TextField(
-        value = "",
-        onValueChange = {},
+        value = searchText,
+        onValueChange = onSearchTextChange,
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -295,7 +328,7 @@ fun SearchBar(
             focusedContainerColor = MaterialTheme.colorScheme.surface
         ),
         placeholder = {
-            Text(stringResource(R.string.app_name))
+            Text(stringResource(R.string.search_placeholder))
         },
         modifier = modifier
             .fillMaxWidth()
@@ -321,3 +354,29 @@ fun RequestMultiplePermissionsComposable(
         onPermissionsGranted()
     }
 }
+
+@Composable
+fun CustomImage(
+    imageName: String,
+    homeViewModel: HomeViewModel,
+    modifier: Modifier = Modifier,
+    placeholder: Int = R.drawable.ic_torre_foreground
+) {
+    val imageUrl by homeViewModel.imageUrls.observeAsState(emptyMap())
+
+    LaunchedEffect(imageName) {
+        if (imageName.isNotEmpty()) {
+            homeViewModel.getImage(imageName, imageName)
+        }
+    }
+
+    val painter = rememberAsyncImagePainter(imageUrl[imageName] ?: placeholder)
+
+    Image(
+        painter = painter,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+    )
+}
+

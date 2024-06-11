@@ -1,33 +1,62 @@
 package es.itg.tourismar.ui.screens.home
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.data.model.anchor.AnchorRoute
-import es.itg.tourismar.data.model.anchor.CustomLatLng
-import es.itg.tourismar.data.model.anchor.Pose
-import es.itg.tourismar.data.model.anchor.SerializableFloat3
+import es.itg.tourismar.data.model.marker.MarkerRoute
 import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
+import es.itg.tourismar.data.repository.markerRepository.MarkerRepository
+import es.itg.tourismar.data.repository.storageRepository.StorageRepository
 import es.itg.tourismar.util.Resource
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: AnchorRepository
+    private val anchorRepository: AnchorRepository,
+    private val markerRepository: MarkerRepository,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
     private val _anchorRoutes = MutableLiveData<List<AnchorRoute>?>()
     val anchorRoutes: LiveData<List<AnchorRoute>?> get() = _anchorRoutes
 
+    private val _markerRoutes = MutableLiveData<List<MarkerRoute>?>()
+    val markerRoutes: LiveData<List<MarkerRoute>?> get() = _markerRoutes
+
+    private val _searchText = MutableLiveData<String>()
+    val searchText: LiveData<String> get() = _searchText
+
+    private val _filteredAnchorRoutes = MutableLiveData<List<AnchorRoute>>()
+    val filteredAnchorRoutes: LiveData<List<AnchorRoute>> get() = _filteredAnchorRoutes
+
+    private val _filteredMarkerRoutes = MutableLiveData<List<MarkerRoute>>()
+    val filteredMarkerRoutes: LiveData<List<MarkerRoute>> get() = _filteredMarkerRoutes
+
+    private val _imageUrls = MutableLiveData<Map<String, Uri>>()
+    val imageUrls: LiveData<Map<String, Uri>> get() = _imageUrls
+
+
     init {
+        startObserveAnchorRoutes()
+        startObserveMarkerRoutes()
+        onSearchTextChanged("")
+        _imageUrls.value = emptyMap()
+    }
+
+    private fun startObserveAnchorRoutes(){
         viewModelScope.launch {
-            repository.observeAnchorRoutes().collect { resource ->
+            anchorRepository.observeAnchorRoutes().collect { resource ->
                 when (resource) {
-                    is Resource.Success -> _anchorRoutes.value = resource.data
+                    is Resource.Success -> {
+                        Log.d("HomeViewModel", "Anchor routes loaded: ${resource.data}")
+                        _anchorRoutes.value = resource.data
+                        filterRoutes(_searchText.value ?: "")
+                    }
                     is Resource.Error -> Log.e("HomeViewModel", "Error observing anchor routes: ${resource.message}")
                     is Resource.Loading -> Log.d("HomeViewModel", "Loading observing anchor routes...")
                 }
@@ -35,93 +64,64 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-
-    init {
-//        testAnchorRouteRepository()
-//        fetchAnchorRoutes()
-    }
-
-
-//    fun fetchAnchorRoutes() {
-//        viewModelScope.launch {
-//            _anchorRoutes.value = Resource.Loading()
-//            try {
-//                val result = repository.readAnchorRoutes()
-//                _anchorRoutes.value = Resource.Success(result)
-//            } catch (e: Exception) {
-//                _anchorRoutes.value = Resource.Error(e.message ?: "An error occurred")
-//            }
-//        }
-
-
-
-
-    private fun testAnchorRouteRepository() {
-        // Crear una nueva ruta de ancla
-        val anchor1 = Anchor(
-           "1",
-            "model1.glb",
-            "anchor1",
-            1,
-            "05/03/2024 17:22:11",
-            CustomLatLng(43.3316415, -8.3923496),
-            Pose(SerializableFloat3(0f, 0f, 0f), SerializableFloat3(0f, 0f, 0f)),
-             "05/03/2024 17:22:11"
-        )
-
-        val anchor2 = Anchor(
-            "2",
-            "model2.glb",
-            "anchor2",
-            2,
-            "05/03/2024 17:22:11",
-            CustomLatLng(43.3316415, -8.3923496),
-            Pose(SerializableFloat3(0f, 0f, 0f), SerializableFloat3(0f, 0f, 0f)),
-            "05/03/2024 17:22:11"
-        )
-
-        val anchorRoute = AnchorRoute("Route 2","Route 2",listOf(anchor1, anchor2),"images/torre_de_hercules.jpeg","Route 2 Description")
-
-
+    private fun startObserveMarkerRoutes(){
         viewModelScope.launch {
-            // Crear una nueva ruta de ancla
-            repository.createAnchorRoute(anchorRoute).collect { result ->
-                when (result) {
-                    is Resource.Loading -> println("Creating anchor route: Loading...")
-                    is Resource.Success -> println("Creating anchor route: Success! ${result.data}")
-                    is Resource.Error -> println("Creating anchor route: Error - ${result.message}")
+            markerRepository.observeMarkerRoutes().collect { resource ->
+                when (resource) {
+                    is Resource.Success -> {
+                        Log.d("HomeViewModel", "Anchor routes loaded: ${resource.data}")
+                        _markerRoutes.value = resource.data
+                        filterRoutes(_searchText.value ?: "")
+                    }
+                    is Resource.Error -> Log.e("HomeViewModel", "Error observing marker routes: ${resource.message}")
+                    is Resource.Loading -> Log.d("HomeViewModel", "Loading observing marker routes...")
                 }
             }
-//
-//            // Leer la ruta de ancla recién creada por ID
-//            repository.readAnchorRouteById("1").collect { result ->
-//                when (result) {
-//                    is Resource.Loading -> println("Reading anchor route: Loading...")
-//                    is Resource.Success -> println("Reading anchor route: Success! ${result.data}")
-//                    is Resource.Error -> println("Reading anchor route: Error - ${result.message}")
-//                }
-//            }
-//
-//
-//            // Actualizar la ruta de ancla recién creada
-//            val updatedAnchorRoute = anchorRoute.copy(description = "Updated Route Description")
-//            repository.updateAnchorRoute(updatedAnchorRoute).collect { result ->
-//                when (result) {
-//                    is Resource.Loading -> println("Updating anchor route: Loading...")
-//                    is Resource.Success -> println("Updating anchor route: Success!")
-//                    is Resource.Error -> println("Updating anchor route: Error - ${result.message}")
-//                }
-//            }
-//
-//            // Eliminar la ruta de ancla recién creada
-//            repository.deleteAnchorRouteById("1").collect { result ->
-//                when (result) {
-//                    is Resource.Loading -> println("Deleting anchor route: Loading...")
-//                    is Resource.Success -> println("Deleting anchor route: Success!")
-//                    is Resource.Error -> println("Deleting anchor route: Error - ${result.message}")
-//                }
-//            }
         }
     }
 
+    private fun filterRoutes(searchText: String) {
+        val anchorRoutes = _anchorRoutes.value ?: emptyList()
+        val markerRoutes = _markerRoutes.value ?: emptyList()
+
+        _filteredAnchorRoutes.value = if (searchText.isBlank()) {
+            anchorRoutes
+        } else {
+            anchorRoutes.filter {
+                it.anchorRouteName.contains(searchText, ignoreCase = true) || it.description.contains(searchText, ignoreCase = true)
+            }
+        }
+
+        _filteredMarkerRoutes.value = if (searchText.isBlank()) {
+            markerRoutes
+        } else {
+            markerRoutes.filter {
+                it.name.contains(searchText, ignoreCase = true) || it.description.contains(searchText, ignoreCase = true)
+            }
+        }
+    }
+
+    fun onSearchTextChanged(newSearchText: String) {
+        _searchText.value = newSearchText
+        filterRoutes(newSearchText)
+    }
+
+
+    fun getImage(imageName: String, routeId: String) {
+        viewModelScope.launch {
+            storageRepository.loadImageFromStorage(imageName).collect { result ->
+                when (result) {
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel","Saving image: Loading...")
+                    is Resource.Success -> {
+                        _imageUrls.value = _imageUrls.value?.toMutableMap()?.apply {
+                            result.data?.let { put(routeId, it.normalizeScheme()) }
+                        }
+                    }
+                    is Resource.Error -> Log.e("RoutesManagementViewModel","Save image: Error - ${result.message}")
+                }
+            }
+        }
+    }
 }
+
+
