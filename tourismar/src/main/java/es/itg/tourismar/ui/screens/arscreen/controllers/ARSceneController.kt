@@ -52,10 +52,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.lifecycle.lifecycleScope
-import com.google.android.filament.MaterialInstance
-import hilt_aggregated_deps._dagger_hilt_android_internal_lifecycle_HiltViewModelFactory_ViewModelFactoriesEntryPoint
 import io.github.sceneview.geometries.Cube
+import io.github.sceneview.math.Size
 import io.github.sceneview.node.CubeNode
 
 
@@ -77,16 +75,16 @@ class ARSceneController(
     val childNodes = SnapshotStateList<Pair<String?, Node>>()
     var planeRenderer by mutableStateOf(true)
     var isLoading by mutableStateOf(false)
-    val viewModelScope = CoroutineScope(Dispatchers.Main)
+    var isTesting by mutableStateOf(false)
+    val mainScope = CoroutineScope(Dispatchers.Main)
+    val ioScope = CoroutineScope(Dispatchers.IO)
 
     var scanningState by mutableStateOf(ScanningState.SCANNING)
-    var scanningMessage by mutableStateOf("Move your device around to scan the environment.")
+    var scanningMessage by mutableStateOf("Móvete co dispositivo enfocando o entorno para escanealo.")
     var hostingState by  mutableStateOf(HostingState.PLACING)
     var placedAnchor by mutableStateOf<com.google.ar.core.Anchor?>(null)
     var resolvedAnchors = SnapshotStateMap<String, Pair<Anchor, Boolean>>()
     var resolvedMarkers = SnapshotStateMap<CustomLatLng, Pair<Marker, Boolean>>()
-
-
 
 
 
@@ -122,18 +120,6 @@ class ARSceneController(
         }
     }
 
-    fun updateScanningState(updatedFrame: Frame) {
-        val trackingState = updatedFrame.camera.trackingState
-        if (trackingState == TrackingState.TRACKING) {
-            // Check if enough data has been collected
-            // This is a simplified condition, you might want to use more sophisticated checks
-            if (updatedFrame.updatedAnchors.isNotEmpty()) {
-                scanningState = ScanningState.READY_TO_HOST
-                scanningMessage = "Scan complete. You can now place and host an anchor."
-            }
-        }
-    }
-
 
     /**
      * ARSCENE RESOLVING FUNCTIONS
@@ -145,7 +131,7 @@ class ARSceneController(
                 resolveCloudAnchorById(
                     anchor.id,
                     onSuccess = { cloudAnchorNode ->
-                        viewModelScope.launch {
+                        mainScope.launch {
                             handleResolvedAnchor(anchor, cloudAnchorNode)
                             resolvedAnchors[anchor.id] = Pair(anchor,true)
                         }
@@ -179,7 +165,7 @@ class ARSceneController(
                         marker.location,
                         marker.altitude,
                         onSuccess = { earthAnchorNode ->
-                            viewModelScope.launch(Dispatchers.IO) {
+                            ioScope.launch {
                                 handleResolvedMarker(marker, earthAnchorNode)
                                 resolvedMarkers[marker.location] = Pair(marker, true)
                             }
@@ -191,7 +177,7 @@ class ARSceneController(
                                 marker.altitude,
                                 0f,0f,0f,0f
                             ).let {
-                                viewModelScope.launch(Dispatchers.IO) {
+                                ioScope.launch {
                                     handleResolvedMarker(marker, it)
                                     resolvedMarkers[marker.location] = Pair(marker, true)
                                 }
@@ -272,10 +258,8 @@ class ARSceneController(
     }
 
 
-
-
     suspend fun addModelToAnchorNode(anchorNode: AnchorNode, anchor: Anchor){
-        viewModelScope.launch {
+        mainScope.launch {
             val modelNode = loadModelAndCreateNode(
                 engine,
                 anchorNode,
@@ -290,7 +274,7 @@ class ARSceneController(
     }
 
     suspend fun addModelToAnchorNode(anchorNode: AnchorNode, marker: Marker){
-        viewModelScope.launch(Dispatchers.IO) {
+        ioScope.launch {
             val modelNode = loadModelAndCreateNode(
                 engine,
                 anchorNode,
@@ -303,7 +287,7 @@ class ARSceneController(
 
     }
     private suspend fun loadModelAndCreateNode(engine: Engine, anchorNode: AnchorNode, modelLoader: ModelLoader,
-                                               scale: Float = 1.5f, azimuth: Rotation = Rotation(0f, 0f, 0f), isSingleTapEnabled: Boolean = true,
+                                               scale: Float = 1f, azimuth: Rotation = Rotation(0f, 0f, 0f), isSingleTapEnabled: Boolean = true,
                                                isDoubleTapEnabled: Boolean = true, assetModel: String, anchor: Anchor? = null
     ): ModelNode {
         val modelInstance = loadModelInstance(modelLoader, assetModel)
@@ -338,7 +322,6 @@ class ARSceneController(
 
 
 
-
     private suspend fun loadModelFromViewModel(
         assetModel: String,
         context: Context,
@@ -361,38 +344,17 @@ class ARSceneController(
 
 
 
-    suspend fun createAnchorNode(anchorNode: AnchorNode,
-                                 isPositionEditable: Boolean = false, isSingleTapEnabled: Boolean = true,
-                                 isDoubleTapEnabled: Boolean = true,
-                                 anchor: Anchor? = null
-    ): AnchorNode = withContext(Dispatchers.IO){
+    suspend fun createAnchorNode(anchorNode: AnchorNode, ): AnchorNode = withContext(Dispatchers.IO){
 
-
-        val modelNode = anchor?.model.let {
-            loadModelAndCreateNode(
-                engine,
-                anchorNode,
-                modelLoader,
-                isSingleTapEnabled = isSingleTapEnabled,
-                isDoubleTapEnabled = isDoubleTapEnabled,
-                assetModel = "eiffel_tower.glb",
-                anchor = anchor
-            )
-        }
-//        setAnchorNodeEditability(anchorNode,
-//            isPositionEditable = isPositionEditable)
         val cubeNode = CubeNode(
             engine,
-            Cube.DEFAULT_SIZE,
+            Size(0.2f,0.2f,0.2f),
             Cube.DEFAULT_CENTER,
             materialLoader.createColorInstance(Color.White.copy(alpha = 1f))).apply {
                 withContext(Dispatchers.Main){
-                    loadingAnimation(this@apply)
-
                 }
         }
         anchorNode.clearChildNodes()
-//        anchorNode.addChildNode(modelNode)
         anchorNode.addChildNode(cubeNode)
         return@withContext anchorNode
     }
@@ -403,7 +365,7 @@ class ARSceneController(
 private fun loadingAnimation(cubeNode: CubeNode) {
 
     val jumpAnimator = ValueAnimator.ofFloat(0f, 0.2f).apply {
-        duration = 2000
+        duration = 3000
         interpolator = AccelerateDecelerateInterpolator()
         repeatMode = ValueAnimator.REVERSE
         repeatCount = ValueAnimator.INFINITE
@@ -413,7 +375,7 @@ private fun loadingAnimation(cubeNode: CubeNode) {
         }
     }
     val rotationAnimator = ValueAnimator.ofFloat(0f, 360f).apply {
-        duration = 4000
+        duration = 6000
         interpolator = AccelerateDecelerateInterpolator()
         repeatCount = ValueAnimator.INFINITE
         repeatMode = ValueAnimator.RESTART
@@ -425,20 +387,6 @@ private fun loadingAnimation(cubeNode: CubeNode) {
     jumpAnimator.start()
     rotationAnimator.start()
 }
-
-
-//    suspend fun getModelsName(): List<String> = withContext(Dispatchers.Default){
-//
-//        try {
-//            return@withContext cloudStorageHandler.getFileNames()
-//        }catch (e: Exception){
-//            Log.e("Firebase","error al obtener los nombres")
-//            e.printStackTrace()
-//            return@withContext emptyList()
-//        }
-//
-//    }
-
 
 
 

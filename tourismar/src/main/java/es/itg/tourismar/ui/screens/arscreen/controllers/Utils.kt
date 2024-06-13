@@ -11,12 +11,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.ar.core.Session
 import es.itg.geoar.location.LocationData
 import es.itg.tourismar.data.model.anchor.Anchor
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.data.model.anchor.CustomLatLng
+import es.itg.tourismar.data.model.anchor.HostingState
 import es.itg.tourismar.ui.screens.arscreen.ARSceneViewModel
+import io.github.sceneview.ar.node.AnchorNode
 import kotlinx.coroutines.tasks.await
+import kotlin.coroutines.cancellation.CancellationException
 
 
 suspend fun getLocation(context: Context): CustomLatLng {
@@ -76,4 +80,30 @@ private fun createLocationDataListAnchor(anchorList: List<Anchor>): ArrayList<Lo
     }
 
     return locationDataList
+}
+
+suspend fun testAnchorQuality(arSceneController: ARSceneController, session: Session, anchorNode: AnchorNode) {
+    val qualityChecker = QualityChecker(
+        anyQualityThresholdReached = {
+            with(arSceneController) {
+                hostingState = HostingState.READY_TO_HOST
+                scanningMessage = "Calidade suficiente para crear unha Cloud Anchor"
+            }
+        },
+        bothQualityThresholdsReached = {
+            with(arSceneController) {
+                hostingState = HostingState.READY_TO_HOST
+                scanningMessage = "Calidade óptima para crear unha Cloud Anchor"
+            }
+        }
+    )
+    try {
+        qualityChecker.checkQualityAndProceed(session, arSceneController, anchorNode)
+    } catch (e: CancellationException) {
+        // Handle the cancellation here if necessary
+        // For example, logging or updating the UI
+    } catch (e: Exception) {
+        // Handle other exceptions
+        // For example, logging or showing an error message
+    }
 }

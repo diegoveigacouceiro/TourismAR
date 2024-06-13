@@ -3,10 +3,9 @@ package es.itg.tourismar.ui.screens.arscreen
 
 
 import android.Manifest
+import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.Add
@@ -36,7 +34,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -47,17 +44,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -82,12 +72,14 @@ import es.itg.tourismar.data.model.users.UserLevel
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneController
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneControllerFactory
 import es.itg.tourismar.ui.screens.arscreen.controllers.LocationServiceHandler
+import es.itg.tourismar.ui.screens.arscreen.controllers.QualityChecker
 import es.itg.tourismar.ui.screens.arscreen.controllers.getLocation
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import es.itg.tourismar.util.RequestMultiplePermissionsComposable
 import es.itg.tourismar.util.Resource
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.getDescription
+import io.github.sceneview.ar.node.AnchorNode
 import io.github.sceneview.ar.rememberARCameraNode
 import io.github.sceneview.ar.rememberARCameraStream
 import io.github.sceneview.rememberCollisionSystem
@@ -134,7 +126,6 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
     Scaffold(
         floatingActionButton = {
             ARSceneFloatingActions(
-                navController = navController,
                 anchorRoute,
                 arSceneController,
                 viewModel,
@@ -186,32 +177,58 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
             planeRenderer = arSceneController.planeRenderer,
             onTrackingFailureChanged = { arSceneController.trackingFailureReason = it },
             onSessionUpdated = { session, updatedFrame ->
-                with(arSceneController){
+                with(arSceneController) {
                     this.frame = updatedFrame
                     this.session = session
-                    updateScanningState(updatedFrame)
+//                    updateScanningState(updatedFrame)
                     resolveCloudAnchors(anchorRoute)
                     val earth = session.earth ?: return@ARScene
-                    if (earth.trackingState == TrackingState.TRACKING){
-                        resolveEarthAnchor(earth,markerRoute)
+                    if (earth.trackingState == TrackingState.TRACKING) {
+                        resolveEarthAnchor(earth, markerRoute)
+                    }
+
+                    if (!isTesting && placedAnchor != null) {
+                        isTesting=true
+                        val qualityChecker = QualityChecker(
+                            anyQualityThresholdReached = {
+                                with(arSceneController) {
+                                    hostingState = HostingState.READY_TO_HOST
+                                    scanningMessage = "Calidade suficiente para crear unha Cloud Anchor"
+                                }
+                            },
+                            bothQualityThresholdsReached = {
+                                with(arSceneController) {
+                                    hostingState = HostingState.READY_TO_HOST
+                                    scanningMessage = "Calidade óptima para crear unha Cloud Anchor"
+                                }
+                            }
+                        )
+                        arSceneController.mainScope.launch {
+                            arSceneController.session?.let { it1 ->
+                                qualityChecker.checkQualityAndProceed(
+                                    it1, arSceneController, childNodes.find { it.first == "LoadingModel" }?.second as AnchorNode)
+                                try {
+                                    qualityChecker.checkQualityAndProceed(session, arSceneController, childNodes.find { it.first == "LoadingModel" }?.second as AnchorNode)
+                                } catch (e: Exception) {
+                                    Log.d("AR","Error en el quality")
+                                }
+                            }
+                        }
                     }
                 }
             },
-
             onGestureListener = rememberOnGestureListener(
                 onSingleTapConfirmed = { motionEvent, node ->
-                    if (arSceneController.hostingState == HostingState.PLACING) {
-                        arSceneController.createAnchorFromMotionEvent(motionEvent)?.let { anchor ->
-                            arSceneController.createAnchorNodeFromAnchor(anchor).let {
-                                arSceneController.viewModelScope.launch {
-                                    with(arSceneController) {
-                                        childNodes.add(Pair("LoadingModel", it))
-                                        createAnchorNode(anchorNode = it)
-                                    }
-                                    with(arSceneController){
-                                        placedAnchor = anchor
-                                        hostingState = HostingState.READY_TO_HOST
-                                        scanningMessage = "Anchor placed. Tap the upload button to host it."
+                    if(userLevel == UserLevel.PRIVILEGED){
+                        if (arSceneController.hostingState == HostingState.PLACING && arSceneController.placedAnchor==null) {
+                            arSceneController.createAnchorFromMotionEvent(motionEvent)?.let { anchor ->
+                                arSceneController.createAnchorNodeFromAnchor(anchor).let { anchorNode ->
+                                    arSceneController.mainScope.launch {
+                                        with(arSceneController) {
+                                            childNodes.add(Pair("LoadingModel", anchorNode))
+                                            createAnchorNode(anchorNode = anchorNode)
+                                            placedAnchor = anchor
+                                        }
                                     }
                                 }
                             }
@@ -237,7 +254,7 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 textAlign = TextAlign.Center,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 color = Color.White,
                 text = arSceneController.scanningMessage
             )
@@ -248,8 +265,7 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
 
 
 @Composable
-fun ARSceneFloatingActions(navController: NavController, anchorRoute: AnchorRoute?, viewController: ARSceneController, viewModel: ARSceneViewModel, userLevel: UserLevel) {
-    val showDialogProperties = remember { mutableStateOf(false) }
+fun ARSceneFloatingActions(anchorRoute: AnchorRoute?, viewController: ARSceneController, viewModel: ARSceneViewModel, userLevel: UserLevel) {
     val showDialogMap = remember { mutableStateOf(false) }
     val showDialogAnchorForm = remember { mutableStateOf(false) }
     val cloudAnchorId = remember { mutableStateOf("") }
@@ -286,10 +302,10 @@ fun ARSceneFloatingActions(navController: NavController, anchorRoute: AnchorRout
                                     viewController.placedAnchor = null
                                     isHosting.value = false
                                 })
-                            Toast.makeText(viewController.context, "Trying to host an anchor", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(viewController.context, "Creando unha Cloud Anchor", Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        Toast.makeText(viewController.context, "Keep scanning the environment before hosting an anchor.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(viewController.context, "Continúa escaneando o entorno.", Toast.LENGTH_SHORT).show()
                     }
                 },
                 content = {
@@ -303,6 +319,7 @@ fun ARSceneFloatingActions(navController: NavController, anchorRoute: AnchorRout
                             viewModel.updateAnchorRoute(anchorRoute,
                                 onSuccess = {
                                     viewController.childNodes.removeIf { node-> node.first == "LoadingModel" }
+                                    viewController.isTesting = false
                                     Toast.makeText(viewController.context, it, Toast.LENGTH_SHORT).show()
                                 },
                                 onFailure = {
@@ -361,57 +378,6 @@ fun ARSceneFloatingActionButton(
 }
 
 
-@Composable
-fun ShowARSceneOptionsDialog(viewController: ARSceneController) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = "Hello, Jetpack Compose!",
-            fontSize = 20.sp,
-            color = Color.Blue,
-            fontWeight = FontWeight.Bold,
-            fontStyle = FontStyle.Italic,
-            textDecoration = TextDecoration.Underline,
-            letterSpacing = 2.sp
-        )
-        Text(
-            text = "Hello, Jetpack Compose!",
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.primary
-            )
-        )
-        Text(
-            text = "Hello, Jetpack Compose!",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.Green,
-            style = TextStyle(
-                background = Color.LightGray,
-                shadow = Shadow(
-                    color = Color.Black,
-                    offset = Offset(2f, 2f),
-                    blurRadius = 4f
-                )
-            )
-        )
-        Text(
-            text = "Center aligned text",
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            text = "Scalable Text",
-            fontSize = 20.sp,
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
 
 @Composable
 fun AnchorForm(
@@ -462,15 +428,11 @@ fun AnchorForm(
                         if (!models.isNullOrEmpty()) {
                             Box {
                                 Text(
-                                    selectedModel.ifEmpty { "Select a model" },
+                                    selectedModel.ifEmpty { "Selecciona un modelo" },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable { dropdownExpanded = true }
                                         .padding(8.dp)
-                                        .background(
-                                            Color.LightGray,
-                                            shape = RoundedCornerShape(4.dp)
-                                        )
                                 )
                                 DropdownMenu(
                                     expanded = dropdownExpanded,
@@ -489,7 +451,7 @@ fun AnchorForm(
                                 }
                             }
                         } else {
-                            Text(text = "No models available")
+                            Text(text = "Non hai modelos dispoñibles")
                         }
                     }
                     is Resource.Error -> {
@@ -498,12 +460,6 @@ fun AnchorForm(
                     }
                 }
 
-                TextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -569,7 +525,7 @@ fun AnchorForm(
                     )
                     onSubmit(newAnchor)
                 }) {
-                    Text("Submit")
+                    Text("Gardar")
                 }
             }
         }
