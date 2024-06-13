@@ -1,64 +1,50 @@
 package es.itg.tourismar.ui.screens.routesManagement
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
+import android.graphics.drawable.shapes.Shape
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.Alignment.Vertical
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ShapeDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.hilt.navigation.compose.hiltViewModel
-import coil.annotation.ExperimentalCoilApi
-import coil.compose.rememberImagePainter
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
-import es.itg.tourismar.ui.screens.home.RequestMultiplePermissionsComposable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.FontScaling
+import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
+import es.itg.tourismar.util.RequestMultiplePermissionsComposable
 
 
 @Composable
@@ -119,7 +105,8 @@ fun RoutesManagementContent(
             AnchorRoutesGrid(
                 anchorRoutes = anchorRoutesState!!,
                 modifier = Modifier.padding(vertical = 8.dp),
-                navController = navController
+                navController = navController,
+                viewModel = viewModel
             ) { anchorRoute ->
                 navController.currentBackStackEntry?.savedStateHandle?.set(
                     "selectedRoute", anchorRoute
@@ -139,6 +126,7 @@ fun AnchorRoutesGrid(
     anchorRoutes: List<AnchorRoute>,
     modifier: Modifier = Modifier,
     navController: NavController,
+    viewModel: RoutesManagementViewModel,
     onAnchorRouteClicked: (AnchorRoute)-> Unit
 ) {
     LazyColumn(
@@ -149,63 +137,94 @@ fun AnchorRoutesGrid(
             .height(LocalConfiguration.current.screenHeightDp.dp)
     ) {
         items(anchorRoutes) { anchorRoute ->
-            AnchorRouteCard(anchorRoute = anchorRoute){
+            AnchorRouteCard(anchorRoute = anchorRoute, routesManagementViewModel = viewModel){
                 onAnchorRouteClicked(anchorRoute)            }
         }
     }
 }
 
 
-@OptIn(ExperimentalCoilApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnchorRouteCard(
     anchorRoute: AnchorRoute,
+    routesManagementViewModel: RoutesManagementViewModel,
     modifier: Modifier = Modifier,
-    onClick: ()-> Unit
+    onClick: () -> Unit
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.clickable { onClick() }
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .height(120.dp),
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        onClick = { onClick() }
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier
+                .fillMaxSize()
         ) {
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(120.dp)
             ) {
-                Image(
-                    painter = rememberImagePainter(R.mipmap.ic_torre_background),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(80.dp)
-                )
-                Column(
+                CustomImage(
+                    imageName = anchorRoute.imageUrl,
+                    routesManagementViewModel = routesManagementViewModel,
                     modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-                        .heightIn(max = 80.dp)
-                        .clip(MaterialTheme.shapes.medium),
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxSize()
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxSize()
+            ) {
+                Text(
+                    text = anchorRoute.anchorRouteName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontStyle = FontStyle.Italic,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                Text(
+                    text = anchorRoute.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .fillMaxWidth(),
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 3
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 ) {
-                    Text(
-                        text = anchorRoute.anchorRouteName!!,
-                        style = MaterialTheme.typography.titleMedium,
+                    Icon(
+                        imageVector = Icons.Default.Place,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = anchorRoute.description!!,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.width(200.dp),
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1
+                        text = "${anchorRoute.anchors.size} anchors",
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun DetailedAnchorRouteCard(
@@ -261,4 +280,30 @@ fun DetailedAnchorRouteCard(
             }
         }
     }
+}
+
+
+@Composable
+fun CustomImage(
+    imageName: String,
+    routesManagementViewModel: RoutesManagementViewModel,
+    modifier: Modifier = Modifier,
+    placeholder: Int = R.drawable.googleg_standard_color_18
+) {
+    val imageUrl by routesManagementViewModel.imageUrls.observeAsState(emptyMap())
+
+    LaunchedEffect(imageName) {
+        if (imageName.isNotEmpty()) {
+            routesManagementViewModel.getImage(imageName, imageName)
+        }
+    }
+
+    val painter = rememberAsyncImagePainter(imageUrl[imageName] ?: placeholder)
+
+    Image(
+        painter = painter,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+    )
 }

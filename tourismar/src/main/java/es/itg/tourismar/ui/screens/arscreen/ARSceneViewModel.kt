@@ -1,30 +1,27 @@
 package es.itg.tourismar.ui.screens.arscreen
 
+import android.annotation.SuppressLint
+import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.util.Log
-import android.widget.Toast
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.google.ar.core.Frame
-import com.google.ar.core.Session
-import com.google.ar.core.TrackingFailureReason
 import dagger.hilt.android.lifecycle.HiltViewModel
+import es.itg.geoar.location.LocationData
+import es.itg.tourismar.util.location.LocationService
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.data.repository.anchorRepository.AnchorRepository
 import es.itg.tourismar.data.repository.storageRepository.ModelData
 import es.itg.tourismar.data.repository.storageRepository.StorageRepository
 import es.itg.tourismar.util.Resource
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 
@@ -34,15 +31,23 @@ import javax.inject.Inject
 @HiltViewModel
 class ARSceneViewModel @Inject constructor(
     private val anchorRepository: AnchorRepository,
-    private val storageRepository: StorageRepository
-) : ViewModel() {
+    private val storageRepository: StorageRepository,
+    application: Application
+) : AndroidViewModel(application) {
     private val _models = MutableStateFlow<Resource<List<String>>>(Resource.Loading())
     val models: StateFlow<Resource<List<String>>> get() = _models
+
+    private val _nearestAnchorIds = MutableLiveData<List<String>>()
+    val nearestAnchorIds: LiveData<List<String>> = _nearestAnchorIds
+
+    @SuppressLint("StaticFieldLeak")
+    private val context: Context = getApplication<Application>().applicationContext
+
+    private var targetLocations = ArrayList<LocationData>()
 
     init {
         fetchModels()
     }
-
 
 
     suspend fun loadModelData(modelName: String, resourceResolver: suspend (String) -> Buffer?): ModelData? {
@@ -85,4 +90,29 @@ class ARSceneViewModel @Inject constructor(
         }
     }
 
+    fun startLocationService() {
+        val intent = Intent(context, LocationService::class.java).apply {
+            putExtra("targetLocations", targetLocations)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+            Log.d("AR","startservice")
+
+        } else {
+            context.startService(intent)
+            Log.d("AR","startservice")
+
+        }
+    }
+
+    fun stopLocationService(){
+        val serviceIntent = Intent(context, LocationService::class.java)
+        context.stopService(serviceIntent)
+        Log.d("AR","stopservice")
+    }
+
+    fun setTargetLocations(locations: ArrayList<LocationData>) {
+        targetLocations = locations
+    }
 }

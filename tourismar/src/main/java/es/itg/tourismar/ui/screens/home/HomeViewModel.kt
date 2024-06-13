@@ -111,17 +111,19 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             storageRepository.loadImageFromStorage(imageName).collect { result ->
                 when (result) {
-                    is Resource.Loading -> Log.d("RoutesManagementViewModel","Saving image: Loading...")
+                    is Resource.Loading -> Log.d("HomeViewModel","Get uri image: Loading...")
                     is Resource.Success -> {
                         _imageUrls.value = _imageUrls.value?.toMutableMap()?.apply {
                             result.data?.let { put(routeId, it.normalizeScheme()) }
                         }
                     }
-                    is Resource.Error -> Log.e("RoutesManagementViewModel","Save image: Error - ${result.message}")
+                    is Resource.Error -> Log.e("HomeViewModel","Get uri image: Error - ${result.message}")
                 }
             }
         }
     }
+
+
 }
 
 

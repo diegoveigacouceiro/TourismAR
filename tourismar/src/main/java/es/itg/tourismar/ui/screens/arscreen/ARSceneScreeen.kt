@@ -1,10 +1,8 @@
 package es.itg.tourismar.ui.screens.arscreen
 
 
+
 import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
-import android.location.Location
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,11 +21,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material.icons.twotone.LocationOn
-import androidx.compose.material.icons.twotone.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CardElevation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -67,11 +63,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
-import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
@@ -88,7 +81,10 @@ import es.itg.tourismar.data.model.marker.MarkerRoute
 import es.itg.tourismar.data.model.users.UserLevel
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneController
 import es.itg.tourismar.ui.screens.arscreen.controllers.ARSceneControllerFactory
+import es.itg.tourismar.ui.screens.arscreen.controllers.LocationServiceHandler
+import es.itg.tourismar.ui.screens.arscreen.controllers.getLocation
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
+import es.itg.tourismar.util.RequestMultiplePermissionsComposable
 import es.itg.tourismar.util.Resource
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.getDescription
@@ -102,7 +98,6 @@ import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberOnGestureListener
 import io.github.sceneview.rememberView
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -125,6 +120,16 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
     val arSceneController = remember {
         ARSceneControllerFactory.create(engine,modelLoader,materialLoader,cameraNode,
         cameraStream,view,collisionSystem,context,mainLightNode,viewModel,frame,session,trackingFailureReason )}
+
+    if (userLevel == UserLevel.NORMAL){
+        RequestMultiplePermissionsComposable(permissions = arrayOf(
+            Manifest.permission.POST_NOTIFICATIONS,
+            Manifest.permission.FOREGROUND_SERVICE
+        )) {
+            LocationServiceHandler(arSceneViewModel = viewModel, anchorRoute = anchorRoute)
+        }
+    }
+
 
     Scaffold(
         floatingActionButton = {
@@ -572,32 +577,8 @@ fun AnchorForm(
 }
 
 
-private suspend fun getLocation(context: Context): CustomLatLng {
-    val fusedLocationClient: FusedLocationProviderClient =
-        LocationServices.getFusedLocationProviderClient(context)
-    val location: Location? = try {
-        if (ActivityCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            fusedLocationClient.lastLocation.await()
-        } else {
-            null
-        }
-    } catch (e: Exception) {
-        null
-    }
 
-    return if (location != null) {
-        CustomLatLng(location.latitude, location.longitude)
-    } else {
-        CustomLatLng(0.0, 0.0)
-    }
-}
+
 
 
 

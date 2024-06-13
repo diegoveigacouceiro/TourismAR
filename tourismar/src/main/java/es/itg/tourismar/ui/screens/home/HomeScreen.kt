@@ -1,23 +1,23 @@
 package es.itg.tourismar.ui.screens.home
 
 import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ShapeDefaults
@@ -27,22 +27,19 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil.annotation.ExperimentalCoilApi
 import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import es.itg.tourismar.R
 import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.data.model.marker.MarkerRoute
@@ -51,6 +48,7 @@ import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import es.itg.tourismar.ui.screens.markerScreen.DetailedMarkerRouteCard
 import es.itg.tourismar.ui.screens.markerScreen.MarkerRouteCard
+import es.itg.tourismar.util.RequestMultiplePermissionsComposable
 
 
 @Composable
@@ -88,10 +86,6 @@ fun HomeScreenContent(
             .fillMaxSize()
     ) {
         Column {
-            Spacer(modifier = Modifier.height(20.dp))
-
-            HomeSection(title = R.string.app_name) {
-
                 SearchBar(
                     searchText = searchText,
                     onSearchTextChange = homeViewModel::onSearchTextChanged,
@@ -106,7 +100,6 @@ fun HomeScreenContent(
                     onMarkerRouteClicked = { selectedMarkerRoute = it },
                     modifier = modifier
                 )
-            }
         }
 
         selectedAnchorRoute?.let { anchorRoute ->
@@ -175,10 +168,12 @@ fun MixedRoutesGrid(
     onAnchorRouteClicked: (AnchorRoute) -> Unit,
     onMarkerRouteClicked: (MarkerRoute) -> Unit,
 ) {
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+
         modifier = modifier
             .height(LocalConfiguration.current.screenHeightDp.dp)
     ) {
@@ -196,8 +191,7 @@ fun MixedRoutesGrid(
 }
 
 
-
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnchorRouteCard(
     anchorRoute: AnchorRoute,
@@ -205,45 +199,61 @@ fun AnchorRouteCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.clickable { onClick() }
+    Card(
+        modifier = modifier
+            .width(200.dp)
+            .height(300.dp),
+        elevation = CardDefaults.cardElevation(10.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        onClick = { onClick() }
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = modifier.padding(8.dp)
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+            CustomImage(
+                imageName = anchorRoute.imageUrl,
+                homeViewModel = homeViewModel,
+                modifier = Modifier
+                    .height(150.dp)
+                    .fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = anchorRoute.anchorRouteName,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontStyle = FontStyle.Italic,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            Text(
+                text = anchorRoute.description,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .fillMaxWidth(),
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 3
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
-                CustomImage(
-                    imageName = anchorRoute.imageUrl,
-                    homeViewModel = homeViewModel,
-                    modifier = modifier.size(80.dp),
-                    placeholder = R.mipmap.ic_torre_background
+                Icon(
+                    imageVector = Icons.Default.Place,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
-                Column(
-                    modifier = modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth()
-                        .heightIn(max = 80.dp)
-                        .clip(MaterialTheme.shapes.medium),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = anchorRoute.anchorRouteName,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = anchorRoute.description,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = modifier.width(200.dp),
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 1
-                    )
-                }
+                Text(
+                    text = "${anchorRoute.anchors.size} anchors",
+                    style = MaterialTheme.typography.bodyMedium
+                )
             }
         }
     }
@@ -259,46 +269,44 @@ fun DetailedAnchorRouteCard(
     Card(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(),
-        modifier = modifier
+        modifier = Modifier
     ) {
         Column(
-            modifier = modifier.padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = anchorRoute.anchorRouteName,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = modifier.padding(bottom = 8.dp)
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontStyle = FontStyle.Italic,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = "Description: ${anchorRoute.description}",
+                text = anchorRoute.description,
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             )
-//            Text(
-//                text = "Location: ${anchorRoute.anchors[0].location}",
-//                style = MaterialTheme.typography.bodySmall,
-//                modifier = Modifier.padding(bottom = 8.dp)
-//            )
             RequestMultiplePermissionsComposable(permissions = arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION
             )) {
                 ElevatedCard(
-                modifier = modifier
-                    .padding(8.dp)
-                    .size(500.dp),
-                shape = ShapeDefaults.Medium,
-                elevation =  CardDefaults.elevatedCardElevation(),
-                colors = CardDefaults.elevatedCardColors(),
-            ) {
-                MapComposable(anchorRoute = anchorRoute)
-            }
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(500.dp),
+                    shape = ShapeDefaults.Medium,
+                    elevation =  CardDefaults.elevatedCardElevation(8.dp),
+                    colors = CardDefaults.elevatedCardColors(),
+                ) {
+                    MapComposable(anchorRoute = anchorRoute)
+                }
             }
             ElevatedButton(
                 onClick = onBackClicked,
-                modifier = modifier.align(Alignment.End)
+                modifier = Modifier.align(Alignment.End),
+                colors = ButtonDefaults.buttonColors()
             ) {
                 Text(text = "AR")
             }
@@ -332,35 +340,18 @@ fun SearchBar(
         },
         modifier = modifier
             .fillMaxWidth()
+            .padding(16.dp)
             .heightIn(min = 56.dp)
     )
 }
 
-@Composable
-fun RequestMultiplePermissionsComposable(
-    permissions: Array<String>,
-    onPermissionsGranted: @Composable () -> Unit
-) {
-    var permissionsGranted by rememberSaveable { mutableStateOf(false) }
-    val launcherMultiplePermissions = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissionsGranted = it.values.reduce { acc, next -> acc && next } }
-
-    LaunchedEffect(Unit) {
-        launcherMultiplePermissions.launch(permissions)
-
-    }
-    if (permissionsGranted){
-        onPermissionsGranted()
-    }
-}
 
 @Composable
 fun CustomImage(
     imageName: String,
     homeViewModel: HomeViewModel,
     modifier: Modifier = Modifier,
-    placeholder: Int = R.drawable.ic_torre_foreground
+    placeholder: Int = R.drawable.googleg_standard_color_18
 ) {
     val imageUrl by homeViewModel.imageUrls.observeAsState(emptyMap())
 

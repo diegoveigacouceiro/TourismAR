@@ -31,8 +31,13 @@ class RoutesManagementViewModel @Inject constructor(
     private val _selectedImageUri = MutableLiveData<Uri?>()
     val selectedImageUri: MutableLiveData<Uri?> get() = _selectedImageUri
 
+    private val _imageUrls = MutableLiveData<Map<String, Uri>>()
+    val imageUrls: LiveData<Map<String, Uri>> get() = _imageUrls
+
     init {
         startObserveAnchorRoutes()
+        _imageUrls.value = emptyMap()
+
     }
 
     private fun startObserveAnchorRoutes(){
@@ -126,6 +131,22 @@ class RoutesManagementViewModel @Inject constructor(
                 when (result) {
                     is Resource.Loading -> Log.d("RoutesManagementViewModel","Saving image: Loading...")
                     is Resource.Success -> _selectedImageUri.value = result.data
+                    is Resource.Error -> Log.e("RoutesManagementViewModel","Save image: Error - ${result.message}")
+                }
+            }
+        }
+    }
+
+    fun getImage(imageName: String, routeId: String) {
+        viewModelScope.launch {
+            storageRepository.loadImageFromStorage(imageName).collect { result ->
+                when (result) {
+                    is Resource.Loading -> Log.d("RoutesManagementViewModel","Saving image: Loading...")
+                    is Resource.Success -> {
+                        _imageUrls.value = _imageUrls.value?.toMutableMap()?.apply {
+                            result.data?.let { put(routeId, it.normalizeScheme()) }
+                        }
+                    }
                     is Resource.Error -> Log.e("RoutesManagementViewModel","Save image: Error - ${result.message}")
                 }
             }
