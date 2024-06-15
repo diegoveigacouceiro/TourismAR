@@ -110,7 +110,7 @@ fun NavigationController() {
                 composable(
                     route = screen.route,
                     enterTransition = {
-                        fadeIn(animationSpec = tween(2000)) + slideInHorizontally(animationSpec = tween(2000))
+                        fadeIn(animationSpec = tween(700)) + slideInHorizontally(animationSpec = tween(700))
                     },
                     exitTransition = {
                         fadeOut(animationSpec = tween(700)) + slideOutHorizontally(animationSpec = tween(700))
@@ -119,7 +119,7 @@ fun NavigationController() {
                         fadeIn(animationSpec = tween(700)) + slideInHorizontally(animationSpec = tween(700), initialOffsetX = { -it })
                     },
                     popExitTransition = {
-                        fadeOut(animationSpec = tween(2000)) + slideOutHorizontally(animationSpec = tween(2000), targetOffsetX = { -it })
+                        fadeOut(animationSpec = tween(700)) + slideOutHorizontally(animationSpec = tween(700), targetOffsetX = { -it })
                     }
                 ) {
                     LaunchedEffect(user) {
@@ -162,11 +162,6 @@ fun MyApp(navController: NavController, userLevel: UserLevel?, onLogout: () -> U
             title = Screens.Home.route,
             selectedIcon = Icons.Filled.Home,
             unselectedIcon = Icons.Outlined.Home,
-        ),
-        NavigationItem(
-            title = Screens.ARScene.route,
-            selectedIcon = Icons.Filled.PlayArrow,
-            unselectedIcon = Icons.Outlined.PlayArrow,
         )
     )
     var selectedItemIndex by rememberSaveable { mutableIntStateOf(0) }

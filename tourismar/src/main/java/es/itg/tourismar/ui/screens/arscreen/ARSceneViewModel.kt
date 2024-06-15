@@ -37,9 +37,6 @@ class ARSceneViewModel @Inject constructor(
     private val _models = MutableStateFlow<Resource<List<String>>>(Resource.Loading())
     val models: StateFlow<Resource<List<String>>> get() = _models
 
-    private val _nearestAnchorIds = MutableLiveData<List<String>>()
-    val nearestAnchorIds: LiveData<List<String>> = _nearestAnchorIds
-
     @SuppressLint("StaticFieldLeak")
     private val context: Context = getApplication<Application>().applicationContext
 

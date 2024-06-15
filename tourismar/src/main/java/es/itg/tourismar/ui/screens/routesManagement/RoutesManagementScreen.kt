@@ -6,7 +6,6 @@ import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import android.Manifest
-import android.graphics.drawable.shapes.Shape
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,11 +37,8 @@ import es.itg.tourismar.data.model.anchor.AnchorRoute
 import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.FontScaling
-import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import es.itg.tourismar.util.RequestMultiplePermissionsComposable
 
@@ -130,8 +126,7 @@ fun AnchorRoutesGrid(
     onAnchorRouteClicked: (AnchorRoute)-> Unit
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .height(LocalConfiguration.current.screenHeightDp.dp)
@@ -155,7 +150,6 @@ fun AnchorRouteCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp)
             .height(120.dp),
         elevation = CardDefaults.cardElevation(10.dp),
         colors = CardDefaults.cardColors(

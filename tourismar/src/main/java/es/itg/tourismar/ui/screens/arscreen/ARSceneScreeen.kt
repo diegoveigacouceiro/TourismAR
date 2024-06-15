@@ -180,7 +180,6 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
                 with(arSceneController) {
                     this.frame = updatedFrame
                     this.session = session
-//                    updateScanningState(updatedFrame)
                     resolveCloudAnchors(anchorRoute)
                     val earth = session.earth ?: return@ARScene
                     if (earth.trackingState == TrackingState.TRACKING) {
@@ -531,11 +530,3 @@ fun AnchorForm(
         }
     }
 }
-
-
-
-
-
-
-
-
