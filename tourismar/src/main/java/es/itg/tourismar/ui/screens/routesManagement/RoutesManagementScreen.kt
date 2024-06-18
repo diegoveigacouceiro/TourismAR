@@ -80,18 +80,11 @@ fun RoutesManagementContent(
     modifier: Modifier,
     navController: NavController
 ) {
-    var anchorRoutesState by remember { mutableStateOf<List<AnchorRoute>?>(null) }
-
-    LaunchedEffect(viewModel) {
-        viewModel.anchorRoutes.observeForever { anchorRoutes ->
-            anchorRoutesState = anchorRoutes
-        }
-    }
+    val anchorRoutesState by viewModel.anchorRoutes.observeAsState(emptyList())
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Existing Routes
         if (anchorRoutesState != null) {
             Text(
                 text = stringResource(R.string.existing_routes),

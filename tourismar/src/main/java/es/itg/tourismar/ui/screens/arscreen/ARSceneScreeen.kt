@@ -152,6 +152,7 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
                         false -> Config.DepthMode.DISABLED
                     }
                 arSceneController.cameraStream.isDepthOcclusionEnabled = false
+                arSceneController.view.depthOfFieldOptions.enabled = false
 
                 // Activación Geospatial
                 if (session.isGeospatialModeSupported(Config.GeospatialMode.ENABLED))

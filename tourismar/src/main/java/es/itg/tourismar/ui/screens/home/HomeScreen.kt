@@ -140,25 +140,6 @@ fun HomeScreenContent(
     }
 }
 
-
-@Composable
-fun HomeSection(
-    @StringRes title: Int,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    Column(modifier) {
-        Text(
-            text = stringResource(title),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .paddingFromBaseline(top = 16.dp, bottom = 16.dp)
-        )
-        content()
-    }
-}
-
 @Composable
 fun MixedRoutesGrid(
     anchorRoutes: List<AnchorRoute>,
@@ -169,7 +150,7 @@ fun MixedRoutesGrid(
     onMarkerRouteClicked: (MarkerRoute) -> Unit,
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
+        columns = GridCells.Adaptive(150.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
