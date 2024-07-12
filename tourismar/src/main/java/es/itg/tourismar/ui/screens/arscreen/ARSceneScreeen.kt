@@ -194,12 +194,14 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
                                 with(arSceneController) {
                                     hostingState = HostingState.READY_TO_HOST
                                     scanningMessage = "Calidade suficiente para crear unha Cloud Anchor"
+                                    scanningState = ScanningState.READY_TO_HOST
                                 }
                             },
                             bothQualityThresholdsReached = {
                                 with(arSceneController) {
                                     hostingState = HostingState.READY_TO_HOST
                                     scanningMessage = "Calidade óptima para crear unha Cloud Anchor"
+                                    scanningState = ScanningState.READY_TO_HOST
                                 }
                             }
                         )

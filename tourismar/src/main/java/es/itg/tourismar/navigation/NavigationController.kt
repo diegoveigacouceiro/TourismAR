@@ -44,6 +44,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -120,16 +121,20 @@ fun NavigationController() {
                     when (screen) {
                         is Screens.Home -> HomeScreen(navController)
                         is Screens.ARScene -> {
-                            val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.get<AnchorRoute>("anchorRoute")
-                            val markerRoute: MarkerRoute? = navController.previousBackStackEntry?.savedStateHandle?.get<MarkerRoute>("markerRoute")
-                            val level: UserLevel = navController.previousBackStackEntry?.savedStateHandle?.get<UserLevel>("userLevel") ?: UserLevel.NORMAL
+                            val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.
+                            get<AnchorRoute>("anchorRoute")
+                            val markerRoute: MarkerRoute? = navController.previousBackStackEntry?.savedStateHandle?.
+                            get<MarkerRoute>("markerRoute")
+                            val level: UserLevel = navController.previousBackStackEntry?.savedStateHandle?.
+                            get<UserLevel>("userLevel") ?: UserLevel.NORMAL
                             ARSceneScreen(navController, anchorRoute, markerRoute, level)
                         }
                         is Screens.SignIn -> SignInScreen(navController)
                         is Screens.SignUp -> SignUpScreen(navController)
                         is Screens.RoutesManagement -> RoutesManagementScreen(navController)
                         is Screens.EditAnchorRoute -> {
-                            val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.get<AnchorRoute>("selectedRoute")
+                            val anchorRoute: AnchorRoute? = navController.previousBackStackEntry?.savedStateHandle?.
+                            get<AnchorRoute>("selectedRoute")
                             EditAnchorRouteScreen(anchorRoute, navController, Modifier)
                         }
                     }

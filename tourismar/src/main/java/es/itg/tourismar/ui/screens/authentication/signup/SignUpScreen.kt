@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -67,8 +68,16 @@ fun SignUpScreen(navController: NavController, viewModel: SignUpViewModel = hilt
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onPrimary
+                ),
+                label = {
+                    Text(
+                        text = "Email",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
                     focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -80,9 +89,17 @@ fun SignUpScreen(navController: NavController, viewModel: SignUpViewModel = hilt
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onPrimary
+                ),
+                label = {
+                    Text(
+                        text = "Password",
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.onPrimary,
                     focusedLabelColor = MaterialTheme.colorScheme.onPrimary,
