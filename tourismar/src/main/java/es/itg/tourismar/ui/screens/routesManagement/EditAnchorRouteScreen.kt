@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,6 +47,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -155,20 +158,19 @@ fun EditAnchorRouteScreenContent(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (isExistingRoute) {
-                ElevatedButton(
-                    onClick = onClickDelete,
-                    modifier = modifier
-                        .padding(16.dp)
-                        .align(Alignment.End),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Red,
-                        contentColor = Color.White
-                    ),
-                    contentPadding = ButtonDefaults.ContentPadding
-                ) {
-                    Text(text = stringResource(R.string.delete))
-                }
+            ElevatedButton(
+                onClick = onClickDelete,
+                enabled = isExistingRoute,
+                modifier = modifier
+                    .padding(16.dp)
+                    .align(Alignment.End),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Red,
+                    contentColor = Color.White
+                ),
+                contentPadding = ButtonDefaults.ContentPadding
+            ) {
+                Text(text = stringResource(R.string.delete))
             }
 
             Card(
@@ -328,17 +330,26 @@ fun AnchorItem(anchor: Anchor, isSelected: Boolean, onClick: () -> Unit, onDelet
                 Text(text = "Serialized Time: ${anchor.serializedTime}", style = MaterialTheme.typography.bodyMedium)
                 Text(text = "Location: (${anchor.location.latitude}, ${anchor.location.longitude})", style = MaterialTheme.typography.bodyMedium)
                 Text(text = "API Link: ${anchor.apiLink}", style = MaterialTheme.typography.bodyMedium)
-                IconButton(
+                Button(
                     modifier = Modifier
                         .align(Alignment.End)
                         .align(AbsoluteAlignment.Right),
-                    onClick = { onDelete() }) {
+                    onClick = { onDelete() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(text = stringResource(R.string.delete))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = Icons.Filled.Delete,
                         contentDescription = stringResource(R.string.delete),
-                        tint = Color.Red
+                        tint = MaterialTheme.colorScheme.error
                     )
+
                 }
+
             }
         }
     }
@@ -383,14 +394,15 @@ fun ImagePicker(
                 .size(150.dp)
                 .offset(x = 120.dp, y = 40.dp)
                 .fillMaxSize()
-                .clip(CircleShape),
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onPrimaryContainer),
             onClick = { launcher.launch("image/*") }
         ) {
             Icon(
-                Icons.TwoTone.Add,
+                Icons.Filled.Add,
                 contentDescription = stringResource(R.string.add_photo),
                 modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
     }

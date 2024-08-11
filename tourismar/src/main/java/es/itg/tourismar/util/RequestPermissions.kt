@@ -17,13 +17,15 @@ fun RequestMultiplePermissionsComposable(
     var permissionsGranted by rememberSaveable { mutableStateOf(false) }
     val launcherMultiplePermissions = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissionsGranted = it.values.reduce { acc, next -> acc && next } }
+    ) { result ->
+        permissionsGranted = result.values.fold(true) { acc, next -> acc && next }
+    }
 
     LaunchedEffect(Unit) {
         launcherMultiplePermissions.launch(permissions)
-
     }
-    if (permissionsGranted){
+
+    if (permissionsGranted) {
         onPermissionsGranted()
     }
 }

@@ -284,12 +284,16 @@ fun DetailedAnchorRouteCard(
                     MapComposable(anchorRoute = anchorRoute)
                 }
             }
-            ElevatedButton(
-                onClick = onBackClicked,
-                modifier = Modifier.align(Alignment.End),
-                colors = ButtonDefaults.buttonColors()
-            ) {
-                Text(text = "AR")
+            RequestMultiplePermissionsComposable(permissions = arrayOf(
+                Manifest.permission.CAMERA
+            )) {
+                ElevatedButton(
+                    onClick = onBackClicked,
+                    modifier = Modifier.align(Alignment.End),
+                    colors = ButtonDefaults.buttonColors()
+                ) {
+                    Text(text = "AR")
+                }
             }
         }
     }
