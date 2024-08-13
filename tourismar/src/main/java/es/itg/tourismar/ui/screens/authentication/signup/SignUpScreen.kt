@@ -23,7 +23,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,18 +53,23 @@ fun SignUpScreen(navController: NavController, viewModel: SignUpViewModel = hilt
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.drawable.googleg_standard_color_18),
+                painter = painterResource(id = R.drawable.torre_de_hercules),
                 contentDescription = "Icono",
                 modifier = Modifier.size(80.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Regístrate",
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 40.sp),
+                text = "Rexístrate agora",
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 50.sp),
                 color = MaterialTheme.colorScheme.onPrimary,
                 fontStyle = FontStyle.Italic,
                 fontFamily = FontFamily.Serif,
-                fontSize = TextUnit.Unspecified
+                fontSize = TextUnit.Unspecified,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                lineHeight = 60.sp,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -94,7 +101,7 @@ fun SignUpScreen(navController: NavController, viewModel: SignUpViewModel = hilt
                 ),
                 label = {
                     Text(
-                        text = "Password",
+                        text = "Contrasinal",
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
@@ -125,14 +132,14 @@ fun SignUpScreen(navController: NavController, viewModel: SignUpViewModel = hilt
                 border= BorderStroke(2.dp,MaterialTheme.colorScheme.onPrimary)
             ) {
                 Text(
-                    text = "Sing up",
+                    text = "Rexistrarse",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "¿Ya tienes una cuenta? Inicia sesión.",
+                text = "¿Xa tes unha conta? Accede a ela.",
                 color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .clickable {

@@ -207,10 +207,8 @@ fun ARSceneScreen(navController: NavController, anchorRoute: AnchorRoute?, marke
                         )
                         arSceneController.mainScope.launch {
                             arSceneController.session?.let { it1 ->
-                                qualityChecker.checkQualityAndProceed(
-                                    it1, arSceneController, childNodes.find { it.first == "LoadingModel" }?.second as AnchorNode)
                                 try {
-                                    qualityChecker.checkQualityAndProceed(session, arSceneController, childNodes.find { it.first == "LoadingModel" }?.second as AnchorNode)
+                                    qualityChecker.checkQualityAndProceed(it1, arSceneController, childNodes.find { it.first == "LoadingModel" }?.second as AnchorNode)
                                 } catch (e: Exception) {
                                     Log.d("AR","Error en el quality")
                                 }
@@ -323,6 +321,7 @@ fun ARSceneFloatingActions(anchorRoute: AnchorRoute?, viewController: ARSceneCon
                                     viewController.childNodes.removeIf { node-> node.first == "LoadingModel" }
                                     viewController.isTesting = false
                                     Toast.makeText(viewController.context, it, Toast.LENGTH_SHORT).show()
+                                    showDialogAnchorForm.value = false
                                 },
                                 onFailure = {
                                     Toast.makeText(viewController.context, it.message, Toast.LENGTH_SHORT).show()

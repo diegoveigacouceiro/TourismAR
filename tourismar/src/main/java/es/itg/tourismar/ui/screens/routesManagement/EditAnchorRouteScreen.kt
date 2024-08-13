@@ -3,6 +3,7 @@ package es.itg.tourismar.ui.screens.routesManagement
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -29,12 +30,12 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.twotone.Add
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -47,15 +48,13 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import es.itg.tourismar.R
@@ -146,11 +145,30 @@ fun EditAnchorRouteScreenContent(
     val routeDescription = remember { mutableStateOf(selectedRoute!!.description) }
     val isExistingRoute = selectedRoute!!.id.isNotEmpty()
     var selectedAnchors by remember { mutableStateOf(setOf<Anchor>()) }
+    val context = LocalContext.current
+
+    val cardModifier = if (isExistingRoute) {
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .offset(y = 80.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .offset(y = 120.dp)
+    }
+
+    val imagePickerModifier = if (isExistingRoute) {
+        Modifier.offset(x= 120.dp, y = 40.dp)
+    } else {
+        Modifier.offset(x= 120.dp, y = 130.dp)
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
     ) {
         Column(
             modifier = Modifier
@@ -162,23 +180,36 @@ fun EditAnchorRouteScreenContent(
                 onClick = onClickDelete,
                 enabled = isExistingRoute,
                 modifier = modifier
-                    .padding(16.dp)
-                    .align(Alignment.End),
+                    .align(Alignment.End)
+                    .padding(8.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Red,
                     contentColor = Color.White
                 ),
                 contentPadding = ButtonDefaults.ContentPadding
             ) {
-                Text(text = stringResource(R.string.delete))
+                Icon(imageVector = Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
             }
 
+            if (!isExistingRoute) {
+                Text(
+                    text = stringResource(R.string.creating_new_route),
+                    style = MaterialTheme.typography.displayLarge,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = MaterialTheme.typography.titleLarge.fontWeight,
+                    fontFamily = MaterialTheme.typography.titleLarge.fontFamily,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    modifier = Modifier
+                        .padding(8.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .offset(y = (60).dp),
-            ){
+                modifier = cardModifier,
+            ) {
                 Column(
                     modifier = Modifier.padding(8.dp)
                 ) {
@@ -230,8 +261,12 @@ fun EditAnchorRouteScreenContent(
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(100.dp))
+        Box(
+            modifier = imagePickerModifier
+        ) {
+            ImagePicker(selectedImageUri, onImageSelected)
         }
 
         Row(
@@ -264,23 +299,26 @@ fun EditAnchorRouteScreenContent(
                     }
                 }
             ) {
-                Icon(Icons.Filled.Done, contentDescription = stringResource(R.string.save))
+                Icon(Icons.Default.Save, contentDescription = stringResource(R.string.save))
             }
 
             FloatingActionButton(
                 onClick = {
-                    navController.currentBackStackEntry?.savedStateHandle?.set("anchorRoute", selectedRoute)
-                    navController.currentBackStackEntry?.savedStateHandle?.set("userLevel", UserLevel.PRIVILEGED)
-                    navController.navigate(Screens.ARScene.route)
+                    if (isExistingRoute) {
+                        navController.currentBackStackEntry?.savedStateHandle?.set("anchorRoute", selectedRoute)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("userLevel", UserLevel.PRIVILEGED)
+                        navController.navigate(Screens.ARScene.route)
+                    }else{
+                        Toast.makeText(context, "Crea unha ruta antes de pasar a AR", Toast.LENGTH_SHORT).show()
+                    }
                 }
             ) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.ar_scene))
+                Icon(Icons.Filled.Videocam, contentDescription = stringResource(R.string.ar_scene))
             }
         }
-
-        ImagePicker(selectedImageUri, onImageSelected)
     }
 }
+
 
 
 @Composable
@@ -379,7 +417,6 @@ fun ImagePicker(
             contentDescription = null,
             modifier = Modifier
                 .size(150.dp)
-                .offset(x = 120.dp, y = 40.dp)
                 .fillMaxSize()
                 .clip(CircleShape)
                 .clickable {
@@ -392,7 +429,6 @@ fun ImagePicker(
         IconButton(
             modifier = Modifier
                 .size(150.dp)
-                .offset(x = 120.dp, y = 40.dp)
                 .fillMaxSize()
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.onPrimaryContainer),

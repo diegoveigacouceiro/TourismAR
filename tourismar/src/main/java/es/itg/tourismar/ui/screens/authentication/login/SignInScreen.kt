@@ -19,7 +19,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,18 +62,23 @@ fun SignInScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                painter = painterResource(id = R.drawable.googleg_standard_color_18),
+                painter = painterResource(id = R.drawable.torre_de_hercules),
                 contentDescription = "Icono",
                 modifier = Modifier.size(80.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Inicia Sesión",
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 40.sp),
+                text = "Benvido a TourismAR",
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 50.sp),
                 color = MaterialTheme.colorScheme.onPrimary,
                 fontStyle = FontStyle.Italic,
                 fontFamily = FontFamily.Serif,
-                fontSize = TextUnit.Unspecified
+                fontSize = TextUnit.Unspecified,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                lineHeight = 60.sp,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -103,7 +110,7 @@ fun SignInScreen(
                 ),
                 label = {
                     Text(
-                        text = "Password",
+                        text = "Contrasinal",
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 },
@@ -133,14 +140,14 @@ fun SignInScreen(
                 border= BorderStroke(2.dp,MaterialTheme.colorScheme.onPrimary)
             ) {
                 Text(
-                    text = "Iniciar sesión",
+                    text = "Acceder",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "¿No tienes cuenta? Regístrate aquí",
+                text = "¿Non tes unha conta? Crea unha aquí",
                 color = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .clickable {

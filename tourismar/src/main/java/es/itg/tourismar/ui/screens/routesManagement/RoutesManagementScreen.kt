@@ -7,6 +7,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import android.Manifest
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -38,7 +40,11 @@ import es.itg.tourismar.navigation.Screens
 import es.itg.tourismar.ui.screens.googleMap.MapComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import es.itg.tourismar.util.RequestMultiplePermissionsComposable
 
@@ -52,17 +58,16 @@ fun RoutesManagementScreen(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = {
                     navController.currentBackStackEntry?.savedStateHandle?.set("selectedRoute", AnchorRoute())
                     navController.navigate(Screens.EditAnchorRoute.route)
                           },
-                modifier = modifier
-                    .padding(bottom = 50.dp)
+                modifier = modifier.padding(bottom = 50.dp)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_route))
+                Text(text = stringResource(R.string.add_route))
             }
-
         },
         content = { innerModifier ->
             RoutesManagementContent(
@@ -83,13 +88,19 @@ fun RoutesManagementContent(
     val anchorRoutesState by viewModel.anchorRoutes.observeAsState(emptyList())
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
-        Spacer(modifier = Modifier.height(20.dp))
-
         if (anchorRoutesState != null) {
             Text(
                 text = stringResource(R.string.existing_routes),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth(),
+                fontStyle = FontStyle.Italic,
+                fontFamily = FontFamily.Serif,
+                fontSize = 22.sp ,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
             AnchorRoutesGrid(
                 anchorRoutes = anchorRoutesState!!,
@@ -103,7 +114,6 @@ fun RoutesManagementContent(
                 navController.navigate(Screens.EditAnchorRoute.route)
             }
         }
-
         Spacer(modifier = Modifier.height(56.dp))
     }
 }
@@ -123,6 +133,7 @@ fun AnchorRoutesGrid(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .height(LocalConfiguration.current.screenHeightDp.dp)
+            .padding(horizontal = 16.dp)
     ) {
         items(anchorRoutes) { anchorRoute ->
             AnchorRouteCard(anchorRoute = anchorRoute, routesManagementViewModel = viewModel){
@@ -152,8 +163,7 @@ fun AnchorRouteCard(
         onClick = { onClick() }
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
             Box(
                 modifier = Modifier
@@ -163,8 +173,7 @@ fun AnchorRouteCard(
                 CustomImage(
                     imageName = anchorRoute.imageUrl,
                     routesManagementViewModel = routesManagementViewModel,
-                    modifier = Modifier
-                        .fillMaxSize()
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
@@ -180,7 +189,14 @@ fun AnchorRouteCard(
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontStyle = FontStyle.Italic,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    fontFamily = FontFamily.Serif,
+                    fontSize = TextUnit.Unspecified,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Start
                 )
                 Text(
                     text = anchorRoute.description,
@@ -188,8 +204,12 @@ fun AnchorRouteCard(
                     modifier = Modifier
                         .padding(horizontal = 8.dp)
                         .fillMaxWidth(),
+                    fontStyle = FontStyle.Italic,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = TextUnit.Unspecified,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    maxLines = 3
+                    textAlign = TextAlign.Start
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -212,70 +232,12 @@ fun AnchorRouteCard(
 }
 
 
-
-@Composable
-fun DetailedAnchorRouteCard(
-    anchorRoute: AnchorRoute,
-    modifier: Modifier = Modifier,
-    onBackClicked: () -> Unit
-) {
-    Card(
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(),
-        modifier = modifier
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = anchorRoute.anchorRouteName!!,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Description: ${anchorRoute.description}",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = "Location: ${anchorRoute.anchors[0].location}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            RequestMultiplePermissionsComposable(permissions = arrayOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )) {
-                ElevatedCard(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .size(500.dp),
-                    shape = ShapeDefaults.Medium,
-                    elevation =  CardDefaults.elevatedCardElevation(),
-                    colors = CardDefaults.elevatedCardColors(),
-                ) {
-                    MapComposable(anchorRoute = anchorRoute)
-                }
-            }
-            ElevatedButton(
-                onClick = onBackClicked,
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text(text = "AR")
-            }
-        }
-    }
-}
-
-
 @Composable
 fun CustomImage(
     imageName: String,
     routesManagementViewModel: RoutesManagementViewModel,
     modifier: Modifier = Modifier,
-    placeholder: Int = R.drawable.googleg_standard_color_18
+    placeholder: Int = R.drawable.torre_de_hercules
 ) {
     val imageUrl by routesManagementViewModel.imageUrls.observeAsState(emptyMap())
 

@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">TourismAR</string>
     <string name="ar_scene">ARScene</string>
-    <string name="add_route">Añadir ruta</string>
+    <string name="add_route">Engadir ruta</string>
     <string name="existing_routes">Rutas Creadas</string>
     <string name="route_name">Nome da ruta</string>
     <string name="route_description">Descrición</string>
@@ -14,4 +14,5 @@
     <string name="create_new_route">Nova ruta</string>
     <string name="add_photo">Añadir foto</string>
     <string name="search_placeholder">Ruta por Santiago</string>
+    <string name="creating_new_route">Crea unha nova ruta</string>
 </resources>

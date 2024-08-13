@@ -4,14 +4,18 @@ import android.Manifest
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,10 +23,13 @@ import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ShapeDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
@@ -32,9 +39,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -209,7 +220,14 @@ fun AnchorRouteCard(
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontStyle = FontStyle.Italic,
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                fontFamily = FontFamily.Serif,
+                fontSize = TextUnit.Unspecified,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
             Text(
                 text = anchorRoute.description,
@@ -217,8 +235,12 @@ fun AnchorRouteCard(
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
                     .fillMaxWidth(),
+                fontStyle = FontStyle.Italic,
+                fontFamily = FontFamily.Serif,
+                fontSize = TextUnit.Unspecified,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                maxLines = 3
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -247,57 +269,111 @@ fun DetailedAnchorRouteCard(
     modifier: Modifier = Modifier,
     onBackClicked: () -> Unit
 ) {
+    var isDescriptionExpanded by remember { mutableStateOf(false) }
+    var isNameExpanded by remember { mutableStateOf(false) }
+
     Card(
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(),
-        modifier = Modifier
+        modifier = modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.Center,
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = anchorRoute.anchorRouteName,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontStyle = FontStyle.Italic,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            Text(
-                text = anchorRoute.description,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            RequestMultiplePermissionsComposable(permissions = arrayOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )) {
-                ElevatedCard(
+            item {
+                Text(
+                    text = anchorRoute.anchorRouteName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontStyle = FontStyle.Italic,
                     modifier = Modifier
-                        .padding(8.dp)
-                        .size(500.dp),
-                    shape = ShapeDefaults.Medium,
-                    elevation =  CardDefaults.elevatedCardElevation(8.dp),
-                    colors = CardDefaults.elevatedCardColors(),
-                ) {
-                    MapComposable(anchorRoute = anchorRoute)
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    fontFamily = FontFamily.Serif,
+                    maxLines = if (isNameExpanded) Int.MAX_VALUE else 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                if (anchorRoute.anchorRouteName.length > 50) {
+                    IconButton(onClick = { isDescriptionExpanded = !isDescriptionExpanded }) {
+                        Icon(
+                            imageVector = if (isDescriptionExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isDescriptionExpanded) "Ver menos" else "Ver máis"
+                        )
+                    }
                 }
             }
-            RequestMultiplePermissionsComposable(permissions = arrayOf(
-                Manifest.permission.CAMERA
-            )) {
-                ElevatedButton(
-                    onClick = onBackClicked,
-                    modifier = Modifier.align(Alignment.End),
-                    colors = ButtonDefaults.buttonColors()
-                ) {
-                    Text(text = "AR")
+
+            item {
+                Text(
+                    text = anchorRoute.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    fontFamily = FontFamily.Serif,
+                    maxLines = if (isDescriptionExpanded) Int.MAX_VALUE else 4,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+                if (anchorRoute.description.length > 100) {
+                    IconButton(
+                        onClick = { isDescriptionExpanded = !isDescriptionExpanded }) {
+                        Icon(
+                            imageVector = if (isDescriptionExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isDescriptionExpanded) "Ver menos" else "Ver máis"
+                        )
+                    }
+                }
+            }
+
+            item {
+                RequestMultiplePermissionsComposable(permissions = arrayOf(
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )) {
+                    ElevatedCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(500.dp)
+                            .padding(bottom = 16.dp),
+                        shape = ShapeDefaults.Medium,
+                        elevation = CardDefaults.elevatedCardElevation(8.dp),
+                        colors = CardDefaults.elevatedCardColors(),
+                    ) {
+                        MapComposable(anchorRoute = anchorRoute)
+                    }
+                }
+            }
+
+            item {
+                RequestMultiplePermissionsComposable(permissions = arrayOf(
+                    Manifest.permission.CAMERA
+                )) {
+                    IconButton(
+                        onClick = onBackClicked,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .size(50.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Videocam,
+                            contentDescription = "AR"
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+
 
 
 
@@ -336,7 +412,7 @@ fun CustomImage(
     imageName: String,
     homeViewModel: HomeViewModel,
     modifier: Modifier = Modifier,
-    placeholder: Int = R.drawable.googleg_standard_color_18
+    placeholder: Int = R.drawable.torre_de_hercules
 ) {
     val imageUrl by homeViewModel.imageUrls.observeAsState(emptyMap())
 
